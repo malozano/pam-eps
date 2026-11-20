@@ -4,6 +4,7 @@ import { notifications } from '@mantine/notifications'
 import { IconPlayerPlay } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
+import { useEmailConfigurado } from '../../components/Notificaciones'
 import { direccionesAvisos } from '../../lib/avisos'
 import { supabase } from '../../lib/supabase'
 
@@ -15,7 +16,7 @@ interface Ajustes {
   url_app: string | null
   url_funciones: string | null
   ultima_ejecucion: string | null
-  ultimo_resultado: { generados: number; procesados: number; notificaciones: number } | null
+  ultimo_resultado: { generados: number; procesados: number; notificaciones: number; emails?: number } | null
 }
 
 /** Ajustes de los avisos de plazos (administración). */
@@ -23,6 +24,7 @@ export function Avisos() {
   const qc = useQueryClient()
   const [guardando, setGuardando] = useState(false)
   const [ejecutando, setEjecutando] = useState(false)
+  const { data: hayEmail } = useEmailConfigurado()
   const { data: ajustes, isLoading } = useQuery({
     queryKey: ['ajustes_avisos'],
     queryFn: async () => {
@@ -65,7 +67,7 @@ export function Avisos() {
     notifications.show({
       color: 'green',
       title: 'Avisos procesados',
-      message: `${r?.generados} avisos nuevos · ${r?.notificaciones} notificaciones enviadas`,
+      message: `${r?.generados} avisos nuevos · ${r?.notificaciones} notificaciones push · ${r?.emails ?? 0} emails`,
     })
     qc.invalidateQueries({ queryKey: ['ajustes_avisos'] })
   }
@@ -127,16 +129,29 @@ export function Avisos() {
                 ? new Date(ajustes.ultima_ejecucion).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })
                 : 'todavía no se ha ejecutado'}
             </b>
-            {r && ` · ${r.generados} avisos nuevos, ${r.notificaciones} notificaciones enviadas`}
+            {r && ` · ${r.generados} avisos nuevos, ${r.notificaciones} notificaciones push y ${r.emails ?? 0} emails enviados`}
           </Text>
           {!ajustes.url_funciones && (
             <Alert color="yellow" variant="light">
               Pulsa «Guardar» una vez para que la tarea programada conozca la dirección del servidor.
             </Alert>
           )}
+          <Text size="sm">
+            Envío por email:{' '}
+            {hayEmail === undefined ? '…' : hayEmail ? <b>configurado</b> : <b>no configurado</b>}. Cada persona puede
+            desactivar los avisos por email o las notificaciones push en «Mi cuenta → Notificaciones».
+          </Text>
+          {hayEmail === false && (
+            <Alert color="yellow" variant="light" title="Configurar el envío por email">
+              <Text size="sm">
+                En Supabase → Edge Functions → Secrets, añade: <Code>SMTP_HOST</Code> (p. ej. smtp.gmail.com),{' '}
+                <Code>SMTP_PORT</Code> = 465, <Code>SMTP_USER</Code> (la cuenta de correo), <Code>SMTP_PASS</Code> (la
+                contraseña de aplicación) y <Code>SMTP_FROM</Code> (p. ej. «Planes de mejora EPS &lt;cuenta@gmail.com&gt;»).
+              </Text>
+            </Alert>
+          )}
           <Text size="xs" c="dimmed">
-            Los avisos solo se envían como notificación push a quien la tenga activada (Mi cuenta → Notificaciones). El
-            envío por email se añadirá más adelante. Destino de la tarea: <Code>{ajustes.url_funciones ?? '—'}</Code>
+            Destino de la tarea: <Code>{ajustes.url_funciones ?? '—'}</Code>
           </Text>
           <Button variant="light" leftSection={<IconPlayerPlay size={16} />} onClick={ejecutar} loading={ejecutando} w="fit-content">
             Ejecutar ahora

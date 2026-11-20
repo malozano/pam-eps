@@ -1,11 +1,18 @@
-// Edge Function: envío de avisos de plazos por notificación push (el email se añadirá más adelante).
+// Edge Function: envío de avisos de plazos por notificación push y por email.
 //
 // POST JSON:
 //   { modo: 'tarea', secreto }  -> tarea programada diaria (pg_cron): genera y envía los avisos
 //   { modo: 'ejecutar' }        -> igual, lanzado a mano por administración (con su sesión)
-//   { modo: 'prueba' }          -> envía una notificación de prueba a los dispositivos de quien llama
+//   { modo: 'prueba', canal? }  -> notificación (canal 'push', por defecto) o email ('email') de prueba
+//                                  a quien llama
 //   { modo: 'clave' }           -> devuelve la clave pública VAPID (la genera la primera vez)
+//   { modo: 'estado' }          -> indica si el envío por email está configurado
+//
+// Email: por SMTP con SSL (puerto 465; Supabase bloquea los puertos 25 y 587). Se configura con los
+// secretos de la función SMTP_HOST, SMTP_PORT (465), SMTP_USER, SMTP_PASS y SMTP_FROM
+// (p. ej. «Planes de mejora EPS <cuenta@gmail.com>»). Sin ellos, solo se envían notificaciones push.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
+import nodemailer from 'npm:nodemailer@10.6.1'
 import webpush from 'npm:web-push@3.6.7'
 
 const cors = {
@@ -77,6 +84,56 @@ async function enviar(db: Db, subs: Suscripcion[], mensaje: Record<string, unkno
   return ok
 }
 
+// ---------------------------------------------------------------------
+// Email
+// ---------------------------------------------------------------------
+function transporteEmail() {
+  const host = Deno.env.get('SMTP_HOST')
+  const user = Deno.env.get('SMTP_USER')
+  const pass = Deno.env.get('SMTP_PASS')
+  if (!host || !user || !pass) return null
+  const port = Number(Deno.env.get('SMTP_PORT') ?? 465)
+  return nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } })
+}
+const remitente = () => Deno.env.get('SMTP_FROM') ?? `Planes de mejora EPS <${Deno.env.get('SMTP_USER')}>`
+
+const html = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
+
+function cuerpoEmail(m: { title: string; body: string; url: string }, urlApp: string) {
+  const lineas = m.body.split('\n')
+  const texto = `${m.title}\n\n${m.body}\n\nVer la acción: ${m.url}\n\n--\nAviso automático de los planes de acciones de mejora de la Escuela Politécnica Superior.\nPuedes desactivar los avisos por email en «Mi cuenta → Notificaciones»: ${urlApp}perfil`
+  const cuerpo = `<!doctype html><html lang="es"><body style="margin:0;padding:24px;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;color:#1a1b1e">
+<table role="presentation" width="100%" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:8px;border:1px solid #e3e5e8">
+<tr><td style="padding:20px 24px;border-bottom:3px solid #4263eb">
+<div style="font-size:12px;color:#6b7280">Escuela Politécnica Superior · Planes de acciones de mejora</div>
+<div style="font-size:18px;font-weight:bold;margin-top:4px">${html(m.title)}</div></td></tr>
+<tr><td style="padding:20px 24px;font-size:15px;line-height:1.5">
+<p style="margin:0 0 8px;font-weight:bold">${html(lineas[0] ?? '')}</p>
+${lineas.slice(1).map((l) => `<p style="margin:0 0 8px;color:#374151">${html(l)}</p>`).join('')}
+<p style="margin:20px 0 0"><a href="${html(m.url)}" style="display:inline-block;background:#4263eb;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:6px;font-weight:bold">Ver la acción</a></p>
+</td></tr>
+<tr><td style="padding:14px 24px;font-size:12px;color:#6b7280;border-top:1px solid #e3e5e8">
+Aviso automático. Puedes desactivar los avisos por email en <a href="${html(urlApp)}perfil" style="color:#4263eb">Mi cuenta → Notificaciones</a>.
+</td></tr></table></body></html>`
+  return { text: texto, html: cuerpo }
+}
+
+async function enviarEmail(
+  t: ReturnType<typeof transporteEmail>,
+  para: string,
+  m: { title: string; body: string; url: string },
+  urlApp: string,
+) {
+  if (!t) return false
+  try {
+    await t.sendMail({ from: remitente(), to: para, subject: m.title, ...cuerpoEmail(m, urlApp) })
+    return true
+  } catch (e) {
+    console.error('Error al enviar email a', para, (e as Error).message)
+    return false
+  }
+}
+
 const fecha = (iso: string | null) => (iso ? iso.split('-').reverse().join('/') : '—')
 const ESTADO: Record<string, string> = { pendiente: 'pendiente', en_proceso: 'en proceso' }
 
@@ -85,7 +142,7 @@ interface AvisoPendiente {
   tipo: 'inicio' | 'fin_proximo' | 'vencida'
   perfil_id: string
   acciones: { id: string; codigo: string; nombre: string; titulacion: string; estado: string; fecha_inicio: string | null; fecha_fin: string | null }
-  perfiles: { avisos_push: boolean }
+  perfiles: { avisos_push: boolean; avisos_email: boolean; email: string }
 }
 
 function mensajeAviso(a: AvisoPendiente, urlApp: string) {
@@ -110,11 +167,16 @@ async function procesar(db: Db) {
 
   const { data: pendientes, error: e2 } = await db
     .from('avisos')
-    .select('id, tipo, perfil_id, acciones(id, codigo, nombre, titulacion, estado, fecha_inicio, fecha_fin), perfiles(avisos_push)')
-    .is('enviado_push', null)
+    .select(
+      'id, tipo, perfil_id, enviado_push, enviado_email, acciones(id, codigo, nombre, titulacion, estado, fecha_inicio, fecha_fin), perfiles(avisos_push, avisos_email, email)',
+    )
+    .or('enviado_push.is.null,enviado_email.is.null')
+    // los avisos antiguos que no se pudieron enviar por email (p. ej. sin SMTP configurado) no se acumulan
+    .gte('creado', new Date(Date.now() - 3 * 86400000).toISOString())
     .limit(1000)
   if (e2) throw e2
-  const avisos = (pendientes ?? []) as unknown as AvisoPendiente[]
+  const avisos = (pendientes ?? []) as unknown as (AvisoPendiente & { enviado_push: string | null; enviado_email: string | null })[]
+  const smtp = transporteEmail()
 
   const perfiles = Array.from(new Set(avisos.map((a) => a.perfil_id)))
   const { data: subs, error: e3 } = perfiles.length
@@ -123,14 +185,25 @@ async function procesar(db: Db) {
   if (e3) throw e3
 
   let notificaciones = 0
+  let emails = 0
   for (const a of avisos) {
-    if (a.perfiles?.avisos_push) {
-      const propias = (subs as Suscripcion[]).filter((s) => s.perfil_id === a.perfil_id)
-      notificaciones += await enviar(db, propias, mensajeAviso(a, urlApp))
+    const m = mensajeAviso(a, urlApp)
+    const cambios: Record<string, string> = {}
+    if (!a.enviado_push) {
+      if (a.perfiles?.avisos_push) {
+        const propias = (subs as Suscripcion[]).filter((s) => s.perfil_id === a.perfil_id)
+        notificaciones += await enviar(db, propias, m)
+      }
+      cambios.enviado_push = new Date().toISOString()
     }
-    await db.from('avisos').update({ enviado_push: new Date().toISOString() }).eq('id', a.id)
+    // Email: si no está configurado, el aviso queda pendiente (unos días) por si se configura
+    if (!a.enviado_email && smtp) {
+      if (a.perfiles?.avisos_email && (await enviarEmail(smtp, a.perfiles.email, m, urlApp))) emails++
+      cambios.enviado_email = new Date().toISOString()
+    }
+    if (Object.keys(cambios).length) await db.from('avisos').update(cambios).eq('id', a.id)
   }
-  const resultado = { generados, procesados: avisos.length, notificaciones }
+  const resultado = { generados, procesados: avisos.length, notificaciones, emails, email_configurado: !!smtp }
   await db.from('ajustes_avisos').update({ ultima_ejecucion: new Date().toISOString(), ultimo_resultado: resultado }).eq('id', true)
   return resultado
 }
@@ -168,8 +241,20 @@ Deno.serve(async (req) => {
         const { publica } = await clavesVapid(db)
         return respuesta({ clave: publica })
       }
+      case 'estado':
+        return respuesta({ email: !!transporteEmail() })
       case 'prueba': {
         const urlApp = await prepararWebPush(db)
+        if (body.canal === 'email') {
+          const smtp = transporteEmail()
+          if (!smtp) return respuesta({ error: 'El envío por email no está configurado' }, 400)
+          const ok = await enviarEmail(smtp, quien.user.email!, {
+            title: 'Email de prueba',
+            body: 'Los avisos por email de los planes de mejora funcionan.\nRecibirás aquí los avisos de plazos de tus acciones.',
+            url: urlApp,
+          }, urlApp)
+          return ok ? respuesta({ enviado: true }) : respuesta({ error: 'No se ha podido enviar el email (revisa la configuración SMTP)' }, 502)
+        }
         const { data: subs } = await db.from('suscripciones_push').select('*').eq('perfil_id', quien.user.id)
         const enviadas = await enviar(db, (subs ?? []) as Suscripcion[], {
           title: 'Notificación de prueba',

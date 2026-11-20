@@ -1,11 +1,17 @@
 import { Alert, Badge, Button, Group, Paper, Stack, Switch, Text, Title } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { IconBell, IconBellOff, IconSend } from '@tabler/icons-react'
+import { IconBell, IconBellOff, IconMail, IconSend } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
-import { activarPush, desactivarPush, enviarPrueba, estadoPush, type EstadoPush } from '../lib/push'
+import {
+  activarPush, desactivarPush, emailConfigurado, enviarEmailPrueba, enviarPrueba, estadoPush, type EstadoPush,
+} from '../lib/push'
 import { supabase } from '../lib/supabase'
+
+export function useEmailConfigurado() {
+  return useQuery({ queryKey: ['email_configurado'], queryFn: emailConfigurado, staleTime: 5 * 60_000 })
+}
 
 export function useEstadoPush() {
   return useQuery({ queryKey: ['estado_push'], queryFn: estadoPush, staleTime: 30_000 })
@@ -27,6 +33,7 @@ export function Notificaciones() {
   const { data: estado, isLoading } = useEstadoPush()
   const [ocupado, setOcupado] = useState(false)
   const [email, setEmail] = useState(perfil?.avisos_email ?? true)
+  const { data: hayEmail } = useEmailConfigurado()
 
   const { data: dispositivos = [] } = useQuery({
     queryKey: ['mis_dispositivos', estado],
@@ -64,6 +71,18 @@ export function Notificaciones() {
           ? `Notificación de prueba enviada a ${r.enviadas === 1 ? '1 dispositivo' : `${r.enviadas} dispositivos`}`
           : 'No se ha podido entregar a ningún dispositivo',
       })
+    } catch (e) {
+      error(e)
+    } finally {
+      setOcupado(false)
+    }
+  }
+
+  async function pruebaEmail() {
+    setOcupado(true)
+    try {
+      await enviarEmailPrueba()
+      notifications.show({ color: 'green', message: `Email de prueba enviado a ${perfil?.email}` })
     } catch (e) {
       error(e)
     } finally {
@@ -120,13 +139,24 @@ export function Notificaciones() {
           )}
         </Stack>
 
-        <Group justify="space-between" wrap="nowrap">
-          <div>
-            <Text fw={500}>Avisos por email</Text>
-            <Text size="xs" c="dimmed">{perfil?.email} · el envío por email estará disponible próximamente</Text>
-          </div>
-          <Switch size="md" aria-label="Avisos por email" checked={email} onChange={(e) => cambiarEmail(e.currentTarget.checked)} />
-        </Group>
+        <Stack gap="xs">
+          <Group justify="space-between" wrap="nowrap">
+            <div>
+              <Text fw={500}>Avisos por email</Text>
+              <Text size="xs" c="dimmed">
+                {hayEmail === false
+                  ? `${perfil?.email} · el envío por email todavía no está configurado`
+                  : `Se envían a ${perfil?.email}`}
+              </Text>
+            </div>
+            <Switch size="md" aria-label="Avisos por email" checked={email} onChange={(e) => cambiarEmail(e.currentTarget.checked)} />
+          </Group>
+          {hayEmail && email && (
+            <Button size="xs" variant="default" leftSection={<IconMail size={14} />} onClick={pruebaEmail} loading={ocupado} w="fit-content">
+              Enviar email de prueba
+            </Button>
+          )}
+        </Stack>
       </Stack>
     </Paper>
   )

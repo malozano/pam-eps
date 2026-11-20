@@ -91,3 +91,19 @@ export async function enviarPrueba(): Promise<{ dispositivos: number; enviadas: 
   if (error) throw error
   return data as { dispositivos: number; enviadas: number }
 }
+
+/** Si el envío de avisos por email está configurado en el servidor (secretos SMTP). */
+export async function emailConfigurado(): Promise<boolean> {
+  const { data, error } = await supabase.functions.invoke('enviar-avisos', { body: { modo: 'estado' } })
+  if (error) return false
+  return !!(data as { email?: boolean }).email
+}
+
+export async function enviarEmailPrueba(): Promise<void> {
+  const { error } = await supabase.functions.invoke('enviar-avisos', { body: { modo: 'prueba', canal: 'email' } })
+  if (error) {
+    const ctx = (error as { context?: Response }).context
+    const detalle = ctx ? await ctx.json().catch(() => null) : null
+    throw new Error(detalle?.error ?? error.message)
+  }
+}

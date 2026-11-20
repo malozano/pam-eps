@@ -157,7 +157,11 @@ una sola vez por acción y fecha; los días se configuran en «Avisos» (adminis
   dispositivo (en iPhone, con la aplicación instalada e iOS 16.4+).
 - La tarea programada se autentica con un secreto generado por la base de datos; la dirección del
   proyecto se guarda sola cuando entra un administrador en la aplicación.
-- Email: preferencia ya disponible; el envío se conectará cuando se elija el servicio de correo.
+- **Email** por SMTP con SSL (puerto 465; Supabase bloquea los puertos 25 y 587). Se configura con
+  secretos de la Edge Function (Supabase → Edge Functions → Secrets): `SMTP_HOST` (p. ej.
+  `smtp.gmail.com`), `SMTP_PORT` = `465`, `SMTP_USER`, `SMTP_PASS` (contraseña de aplicación) y
+  `SMTP_FROM` (p. ej. `Planes de mejora EPS <cuenta@gmail.com>`). Sin ellos solo se envía push. Cada
+  usuario puede desactivar los avisos por email y enviarse un email de prueba en «Mi cuenta».
 
 ## Idiomas
 
