@@ -15,7 +15,7 @@ de la Escuela Politécnica Superior (y el plan transversal del centro, código `
 | 0 | Repositorio, proyecto Supabase, despliegue | ✅ (pendiente de conectar los servicios reales) |
 | 1 | Esquema de BD, código automático, historial, RLS, acceso, gestión de usuarios | ✅ |
 | 2 | Importación de Excel con vista previa (atómica, detecta errores y códigos antiguos) | ✅ |
-| 3 | Gestión de acciones (listado, alta, edición, borrado) | ⏳ |
+| 3 | Gestión de acciones (listado con filtros, alta con código automático, edición, borrado) y avisos de plazos en el inicio | ✅ |
 | 4 | Seguimiento (cambios de estado con observaciones/evidencias, cerrar acciones) | ⏳ |
 | 5 | Vista pública por titulación/curso y exportación a Excel | ⏳ |
 | 6 | Piloto | ⏳ |

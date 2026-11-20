@@ -1,21 +1,76 @@
-import { Alert, Anchor, Badge, Button, Group, Skeleton, Stack, Table, Text, Title } from '@mantine/core'
-import { IconFileImport } from '@tabler/icons-react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import {
+  ActionIcon, Alert, Anchor, Badge, Button, Chip, Group, Paper, Select, Skeleton, Stack, Switch, Table, Text,
+  TextInput, Title, Tooltip,
+} from '@mantine/core'
+import { useMediaQuery } from '@mantine/hooks'
+import { IconFileImport, IconPencil, IconPlus, IconSearch } from '@tabler/icons-react'
+import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { EstadoBadge } from '../components/EstadoBadge'
-import { etiquetaCurso } from '../lib/cursos'
+import { SituacionBadge } from '../components/SituacionBadge'
+import { anyoPorDefecto, etiquetaCurso } from '../lib/cursos'
 import { fechaCorta } from '../lib/formato'
+import { normalizar } from '../lib/importacion'
+import { enPlanDelCurso } from '../lib/seguimiento'
+import { ESTADOS, type EstadoAccion } from '../lib/tipos'
 import { useAccionesTitulacion } from '../lib/useCatalogos'
 import { useTitulaciones } from '../lib/useTitulaciones'
 
-/** Plan de una titulación. De momento es un listado de consulta; en la fase 3 se añaden alta, edición y borrado. */
+/**
+ * Plan de una titulación. Los filtros se guardan en la URL (?curso=2026&estado=…&q=…)
+ * para poder compartir o recargar la vista.
+ */
 export function GestionPlan() {
   const { codigo = '' } = useParams()
+  const { t } = useTranslation()
+  const navigate = useNavigate()
   const { esAdmin, titulaciones } = useAuth()
   const { data: tits } = useTitulaciones()
-  const { data: acciones, isLoading, error } = useAccionesTitulacion(codigo)
+  const { data: acciones = [], isLoading, error } = useAccionesTitulacion(codigo)
+  const [params, setParams] = useSearchParams()
+  const [verCerradas, setVerCerradas] = useState(false)
+  const movil = useMediaQuery('(max-width: 48em)')
+
+  // Los filtros viven en el estado de la página (respuesta inmediata) y se copian a la URL
+  // (?curso=2026&estado=…&q=…) para poder recargar o compartir la vista
+  const [filtros, setFiltros] = useState(() => ({
+    curso: params.get('curso') ?? String(anyoPorDefecto()), // 'todos' o año
+    estados: (params.get('estado')?.split(',').filter(Boolean) ?? []) as EstadoAccion[],
+    q: params.get('q') ?? '',
+  }))
+  const { curso, estados, q } = filtros
+  useEffect(() => {
+    const p = new URLSearchParams()
+    if (curso !== String(anyoPorDefecto())) p.set('curso', curso)
+    if (estados.length) p.set('estado', estados.join(','))
+    if (q) p.set('q', q)
+    if (p.toString() !== params.toString()) setParams(p, { replace: true })
+  }, [curso, estados, q, params, setParams])
+  const actualizar = <K extends keyof typeof filtros>(clave: K, valor: (typeof filtros)[K]) =>
+    setFiltros((f) => ({ ...f, [clave]: valor }))
+
+  const anyos = useMemo(() => {
+    const s = new Set(acciones.map((a) => a.anyo))
+    s.add(anyoPorDefecto())
+    s.add(anyoPorDefecto() + 1)
+    return Array.from(s).sort((a, b) => b - a)
+  }, [acciones])
+
+  const filtradas = useMemo(() => {
+    const nq = normalizar(q)
+    return acciones.filter(
+      (a) =>
+        (curso === 'todos' ? verCerradas || !a.cerrada : enPlanDelCurso(a, Number(curso))) &&
+        (estados.length === 0 || estados.includes(a.estado)) &&
+        (!nq || normalizar(`${a.codigo} ${a.nombre} ${a.tareas ?? ''} ${a.responsable ?? ''}`).includes(nq)),
+    )
+  }, [acciones, curso, estados, q, verCerradas])
+
   if (!esAdmin && !titulaciones.includes(codigo)) return <Navigate to="/" replace />
   const tit = tits?.find((x) => x.codigo === codigo)
+  const ocultasCerradas = curso === 'todos' && !verCerradas ? acciones.filter((a) => a.cerrada).length : 0
 
   return (
     <Stack>
@@ -27,52 +82,153 @@ export function GestionPlan() {
           <Badge variant="light">{codigo}</Badge>
           <Title order={2}>{tit?.nombre ?? codigo}</Title>
         </div>
-        <Button component={Link} to={`/gestion/${codigo}/importar`} variant="light" leftSection={<IconFileImport size={16} />}>
-          Importar Excel
-        </Button>
+        <Group gap="xs">
+          <Button component={Link} to={`/gestion/${codigo}/importar`} variant="default" leftSection={<IconFileImport size={16} />}>
+            Importar Excel
+          </Button>
+          <Button component={Link} to={`/gestion/${codigo}/nueva`} leftSection={<IconPlus size={16} />}>
+            Nueva acción
+          </Button>
+        </Group>
       </Group>
+
+      <Group align="flex-end" gap="md">
+        <Select
+          label="Curso"
+          w={220}
+          allowDeselect={false}
+          value={curso}
+          onChange={(v) => v && actualizar('curso', v)}
+          data={[
+            ...anyos.map((a) => ({ value: String(a), label: `Plan ${etiquetaCurso(a)}` })),
+            { value: 'todos', label: 'Todas las acciones' },
+          ]}
+        />
+        <TextInput
+          label="Buscar"
+          placeholder="Código, texto o responsable"
+          leftSection={<IconSearch size={16} />}
+          value={q}
+          onChange={(e) => actualizar('q', e.currentTarget.value)}
+          w={260}
+        />
+        <Chip.Group multiple value={estados} onChange={(v) => actualizar('estados', v as EstadoAccion[])}>
+          <Group gap={6} pb={4}>
+            {ESTADOS.map((e) => (
+              <Chip key={e} value={e} size="sm">
+                {t(`estado.${e}`)}
+              </Chip>
+            ))}
+          </Group>
+        </Chip.Group>
+        {curso === 'todos' && (
+          <Switch
+            pb={8}
+            label="Mostrar cerradas"
+            checked={verCerradas}
+            onChange={(e) => setVerCerradas(e.currentTarget.checked)}
+          />
+        )}
+      </Group>
+      {curso !== 'todos' && (
+        <Text size="sm" c="dimmed">
+          Acciones del curso {etiquetaCurso(Number(curso))} y de cursos anteriores que siguen pendientes o en proceso.
+        </Text>
+      )}
+
       {error && <Alert color="red">{(error as Error).message}</Alert>}
       {isLoading ? (
         <Skeleton h={200} />
-      ) : !acciones?.length ? (
+      ) : acciones.length === 0 ? (
         <Alert color="blue">
-          Este plan todavía no tiene acciones. Puedes importar el Excel actual con «Importar Excel».
+          Este plan todavía no tiene acciones. Crea una con «Nueva acción» o importa el Excel actual.
         </Alert>
+      ) : filtradas.length === 0 ? (
+        <Alert color="gray">Ninguna acción cumple los filtros.</Alert>
+      ) : movil ? (
+        <Stack gap="xs">
+          {filtradas.map((a) => (
+            <Paper
+              key={a.id}
+              withBorder
+              p="sm"
+              component={Link}
+              to={`/gestion/${codigo}/accion/${a.id}`}
+              opacity={a.cerrada ? 0.6 : 1}
+              style={{ color: 'inherit', textDecoration: 'none' }}
+            >
+              <Group justify="space-between" wrap="nowrap" mb={4}>
+                <Text size="sm" ff="monospace">{a.codigo}</Text>
+                <EstadoBadge estado={a.estado} />
+              </Group>
+              <Text size="sm" fw={500} lineClamp={3}>{a.nombre}</Text>
+              <Text size="xs" c="dimmed" mt={4}>
+                {fechaCorta(a.fecha_inicio)} – {fechaCorta(a.fecha_fin)} · {a.responsable ?? 'Sin responsable'}
+              </Text>
+              <Group gap={4} mt={4}>
+                <SituacionBadge accion={a} />
+                {!a.es_mejora && <Badge size="xs" variant="outline" color="gray">No es acción de mejora</Badge>}
+                {a.cerrada && <Badge size="xs" variant="outline" color="gray">Cerrada</Badge>}
+              </Group>
+            </Paper>
+          ))}
+        </Stack>
       ) : (
-        <Table.ScrollContainer minWidth={800}>
+        <Table.ScrollContainer minWidth={860}>
           <Table striped highlightOnHover verticalSpacing="xs">
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>Código</Table.Th>
                 <Table.Th>Acción</Table.Th>
-                <Table.Th>Curso</Table.Th>
+                <Table.Th>Responsable</Table.Th>
                 <Table.Th>Inicio</Table.Th>
                 <Table.Th>Fin</Table.Th>
                 <Table.Th>Estado</Table.Th>
+                <Table.Th />
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {acciones.map((a) => (
-                <Table.Tr key={a.id} opacity={a.cerrada ? 0.6 : 1}>
-                  <Table.Td>
-                    <Text size="sm" ff="monospace" style={{ whiteSpace: 'nowrap' }}>{a.codigo}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm" lineClamp={2}>{a.nombre}</Text>
-                    <Group gap={4}>
-                      {!a.es_mejora && <Badge size="xs" variant="outline" color="gray">No es acción de mejora</Badge>}
-                      {a.cerrada && <Badge size="xs" variant="outline" color="gray">Cerrada</Badge>}
-                    </Group>
-                  </Table.Td>
-                  <Table.Td style={{ whiteSpace: 'nowrap' }}>{etiquetaCurso(a.anyo)}</Table.Td>
-                  <Table.Td style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_inicio)}</Table.Td>
-                  <Table.Td style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_fin)}</Table.Td>
-                  <Table.Td miw={130}><EstadoBadge estado={a.estado} /></Table.Td>
-                </Table.Tr>
-              ))}
+              {filtradas.map((a) => {
+                const url = `/gestion/${codigo}/accion/${a.id}`
+                return (
+                  <Table.Tr key={a.id} opacity={a.cerrada ? 0.6 : 1} style={{ cursor: 'pointer' }} onClick={() => navigate(url)}>
+                    <Table.Td>
+                      <Text size="sm" ff="monospace" style={{ whiteSpace: 'nowrap' }}>{a.codigo}</Text>
+                      {a.anyo !== Number(curso) && curso !== 'todos' && (
+                        <Text size="xs" c="dimmed">de {etiquetaCurso(a.anyo)}</Text>
+                      )}
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="sm" lineClamp={2}>{a.nombre}</Text>
+                      <Group gap={4} mt={2}>
+                        <SituacionBadge accion={a} />
+                        {!a.es_mejora && <Badge size="xs" variant="outline" color="gray">No es acción de mejora</Badge>}
+                        {a.cerrada && <Badge size="xs" variant="outline" color="gray">Cerrada</Badge>}
+                      </Group>
+                    </Table.Td>
+                    <Table.Td><Text size="sm">{a.responsable ?? '—'}</Text></Table.Td>
+                    <Table.Td style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_inicio)}</Table.Td>
+                    <Table.Td style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_fin)}</Table.Td>
+                    <Table.Td miw={130}><EstadoBadge estado={a.estado} /></Table.Td>
+                    <Table.Td>
+                      <Tooltip label="Editar">
+                        <ActionIcon variant="subtle" component={Link} to={url} aria-label={`Editar ${a.codigo}`} onClick={(e) => e.stopPropagation()}>
+                          <IconPencil size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </Table.Td>
+                  </Table.Tr>
+                )
+              })}
             </Table.Tbody>
           </Table>
         </Table.ScrollContainer>
+      )}
+      {filtradas.length > 0 && (
+        <Text size="sm" c="dimmed">
+          {filtradas.length} {filtradas.length === 1 ? 'acción' : 'acciones'}
+          {ocultasCerradas > 0 && ` · ${ocultasCerradas} cerradas ocultas`}
+        </Text>
       )}
     </Stack>
   )

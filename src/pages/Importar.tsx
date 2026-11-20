@@ -116,7 +116,7 @@ export function Importar() {
       title: 'Importación completada',
       message: `${r.insertadas} nuevas, ${r.actualizadas} actualizadas, ${r.omitidas} omitidas.`,
     })
-    await qc.invalidateQueries({ queryKey: ['acciones', codigo] })
+    await qc.invalidateQueries({ queryKey: ['acciones'] })
     navigate(`/gestion/${codigo}`)
   }
 

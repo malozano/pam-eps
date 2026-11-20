@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { RequireAuth } from './auth/RequireAuth'
 import { Layout } from './components/Layout'
 import { Usuarios } from './pages/admin/Usuarios'
+import { EditarAccion } from './pages/EditarAccion'
 import { GestionPlan } from './pages/GestionPlan'
 import { Importar } from './pages/Importar'
 import { Inicio } from './pages/Inicio'
@@ -24,6 +25,8 @@ export default function App() {
         <Route index element={<Inicio />} />
         <Route path="gestion/:codigo" element={<GestionPlan />} />
         <Route path="gestion/:codigo/importar" element={<Importar />} />
+        <Route path="gestion/:codigo/nueva" element={<EditarAccion />} />
+        <Route path="gestion/:codigo/accion/:id" element={<EditarAccion key="editar" />} />
         <Route path="perfil" element={<Perfil />} />
         <Route
           path="admin/usuarios"
