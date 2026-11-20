@@ -8,7 +8,7 @@ import {
   IconChevronDown, IconExternalLink, IconFileExport, IconFileImport, IconFileSpreadsheet, IconPencil, IconPlus,
   IconReportAnalytics, IconSearch,
 } from '@tabler/icons-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
@@ -17,6 +17,7 @@ import { SituacionBadge } from '../components/SituacionBadge'
 import { anyoPorDefecto, etiquetaCurso } from '../lib/cursos'
 import { fechaCorta } from '../lib/formato'
 import { normalizar } from '../lib/importacion'
+import { filtrosGuardados, guardarFiltros, guardarScroll, scrollGuardado } from '../lib/memoriaVista'
 import { enPlanDelCurso } from '../lib/seguimiento'
 import { ESTADOS, type EstadoAccion } from '../lib/tipos'
 import { descargar, generarExcel, nombreFichero } from '../lib/exportacion'
@@ -24,8 +25,9 @@ import { useAccionesTitulacion, useResponsables } from '../lib/useCatalogos'
 import { useTitulaciones } from '../lib/useTitulaciones'
 
 /**
- * Plan de una titulación. Los filtros se guardan en la URL (?curso=2026&estado=…&q=…)
- * para poder compartir o recargar la vista.
+ * Plan de una titulación. Los filtros se guardan en la URL (?curso=2026&estado=…&q=…&cerradas=1)
+ * para poder compartir o recargar la vista, y se recuerdan durante la sesión (junto con la
+ * posición de desplazamiento) para volver al listado tal como se dejó.
  */
 export function GestionPlan() {
   const { codigo = '' } = useParams()
@@ -39,24 +41,49 @@ export function GestionPlan() {
     tipoPlan === undefined ? undefined : tipoPlan === 'centro' ? 'centro' : 'titulacion',
   )
   const [params, setParams] = useSearchParams()
-  const [verCerradas, setVerCerradas] = useState(false)
   const movil = useMediaQuery('(max-width: 48em)')
 
-  // Los filtros viven en el estado de la página (respuesta inmediata) y se copian a la URL
-  // (?curso=2026&estado=…&q=…) para poder recargar o compartir la vista
-  const [filtros, setFiltros] = useState(() => ({
-    curso: params.get('curso') ?? String(anyoPorDefecto()), // 'todos' o año
-    estados: (params.get('estado')?.split(',').filter(Boolean) ?? []) as EstadoAccion[],
-    q: params.get('q') ?? '',
-  }))
-  const { curso, estados, q } = filtros
+  // Los filtros viven en el estado de la página (respuesta inmediata) y se copian a la URL.
+  // Si se llega sin filtros en la URL (enlace «← Plan», menú…), se recuperan los últimos usados.
+  const [filtros, setFiltros] = useState(() => {
+    const p = params.toString() ? params : new URLSearchParams(filtrosGuardados(codigo) ?? '')
+    return {
+      curso: p.get('curso') ?? String(anyoPorDefecto()), // 'todos' o año
+      estados: (p.get('estado')?.split(',').filter(Boolean) ?? []) as EstadoAccion[],
+      q: p.get('q') ?? '',
+      cerradas: p.get('cerradas') === '1',
+    }
+  })
+  const { curso, estados, q, cerradas: verCerradas } = filtros
+  const setVerCerradas = (v: boolean) => actualizar('cerradas', v)
   useEffect(() => {
     const p = new URLSearchParams()
     if (curso !== String(anyoPorDefecto())) p.set('curso', curso)
     if (estados.length) p.set('estado', estados.join(','))
     if (q) p.set('q', q)
+    if (verCerradas && curso === 'todos') p.set('cerradas', '1')
+    guardarFiltros(codigo, p.toString())
     if (p.toString() !== params.toString()) setParams(p, { replace: true })
-  }, [curso, estados, q, params, setParams])
+  }, [codigo, curso, estados, q, verCerradas, params, setParams])
+
+  // Posición de desplazamiento: se guarda al salir del listado (antes de que la página nueva la
+  // modifique) y se restaura al volver, cuando ya hay datos
+  // (solo una vez restaurada: evita guardar 0 si la página se desmonta mientras carga)
+  const listo = useRef(false)
+  useLayoutEffect(
+    () => () => {
+      if (listo.current) guardarScroll(codigo, window.scrollY)
+    },
+    [codigo],
+  )
+  useEffect(() => {
+    if (isLoading || listo.current) return
+    const y = scrollGuardado(codigo)
+    requestAnimationFrame(() => {
+      if (y > 0) window.scrollTo(0, y)
+      listo.current = true
+    })
+  }, [isLoading, codigo])
   const actualizar = <K extends keyof typeof filtros>(clave: K, valor: (typeof filtros)[K]) =>
     setFiltros((f) => ({ ...f, [clave]: valor }))
 

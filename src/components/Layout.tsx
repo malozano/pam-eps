@@ -3,6 +3,7 @@ import { useDisclosure } from '@mantine/hooks'
 import {
   IconChartBar, IconChevronDown, IconExternalLink, IconHome, IconLogout, IconUser, IconUsers, IconWorld,
 } from '@tabler/icons-react'
+import { useLayoutEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
@@ -14,6 +15,10 @@ export function Layout() {
   const { perfil, esAdmin, salir } = useAuth()
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  // Cada página nueva empieza arriba (el listado del plan restaura después su posición)
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
 
   const enlace = (to: string, label: string, icon: React.ReactNode) => (
     <NavLink component={Link} to={to} label={label} leftSection={icon} active={pathname === to} onClick={close} />
