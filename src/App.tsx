@@ -3,6 +3,7 @@ import { RequireAuth } from './auth/RequireAuth'
 import { Layout } from './components/Layout'
 import { Usuarios } from './pages/admin/Usuarios'
 import { GestionPlan } from './pages/GestionPlan'
+import { Importar } from './pages/Importar'
 import { Inicio } from './pages/Inicio'
 import { Login } from './pages/Login'
 import { NoEncontrada } from './pages/NoEncontrada'
@@ -22,6 +23,7 @@ export default function App() {
       >
         <Route index element={<Inicio />} />
         <Route path="gestion/:codigo" element={<GestionPlan />} />
+        <Route path="gestion/:codigo/importar" element={<Importar />} />
         <Route path="perfil" element={<Perfil />} />
         <Route
           path="admin/usuarios"
