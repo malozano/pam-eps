@@ -1,0 +1,41 @@
+-- Datos iniciales: titulaciones de la EPS y catálogo de responsables
+
+insert into public.titulaciones (codigo, nombre, siglas, tipo, orden) values
+  ('CEN',  'Escuela Politécnica Superior', 'EPS', 'centro', 0),
+  ('C206', 'Grado en Arquitectura Técnica', null, 'grado', 10),
+  ('C207', 'Grado en Fundamentos de la Arquitectura', null, 'grado', 10),
+  ('C214', 'Grado en Ingeniería Aeroespacial', null, 'grado', 10),
+  ('C210', 'Grado en Ingeniería Biomédica', null, 'grado', 10),
+  ('C208', 'Grado en Ingeniería Civil', null, 'grado', 10),
+  ('C213', 'Grado en Ingeniería en Inteligencia Artificial', null, 'grado', 10),
+  ('C201', 'Grado en Ingeniería en Sonido e Imagen en Telecomunicación', null, 'grado', 10),
+  ('C203', 'Grado en Ingeniería Informática', null, 'grado', 10),
+  ('C205', 'Grado en Ingeniería Multimedia', null, 'grado', 10),
+  ('C204', 'Grado en Ingeniería Química', null, 'grado', 10),
+  ('C211', 'Grado en Ingeniería Robótica', null, 'grado', 10),
+  ('D093', 'Máster Universitario en Arquitectura', null, 'master', 20),
+  ('D037', 'Máster Universitario en Automática y Robótica', null, 'master', 20),
+  ('D104', 'Máster Universitario en Ciberseguridad', null, 'master', 20),
+  ('D109', 'Máster Universitario en Ciencia de Datos', null, 'master', 20),
+  ('D045', 'Máster Universitario en Desarrollo de Aplicaciones y Servicios Web', null, 'master', 20),
+  ('D110', 'Máster Universitario en Desarrollo de Software para Dispositivos Móviles', 'MUDSDM', 'master', 20),
+  ('D054', 'Máster Universitario en Gestión Sostenible y Tecnologías del Agua', null, 'master', 20),
+  ('D115', 'Máster Universitario en Ingeniería Biomédica', null, 'master', 20),
+  ('D081', 'Máster Universitario en Ingeniería de Caminos, Canales y Puertos', null, 'master', 20),
+  ('D072', 'Máster Universitario en Ingeniería de Telecomunicación', null, 'master', 20),
+  ('D088', 'Máster Universitario en Ingeniería Geológica', null, 'master', 20),
+  ('D073', 'Máster Universitario en Ingeniería Informática', null, 'master', 20),
+  ('D089', 'Máster Universitario en Ingeniería Química', null, 'master', 20),
+  ('D114', 'Máster Universitario en Inteligencia Artificial', null, 'master', 20),
+  ('D119', 'Máster Universitario en Nuevas Tecnologías y Eficiencia Energética en Edificación', null, 'master', 20),
+  ('D082', 'Máster Universitario en Prevención de Riesgos Laborales', null, 'master', 20);
+
+insert into public.responsables (nombre, orden) values
+  ('Coordinación asignatura', 1),
+  ('Coordinación curso', 2),
+  ('Coordinación prácticas externas', 3),
+  ('Coordinación TFG/M', 4),
+  ('Coordinación titulación', 5),
+  ('Delegación estudiantes', 6),
+  ('Dirección departamentos', 7),
+  ('Secretaría', 8);

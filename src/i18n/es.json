@@ -1,0 +1,29 @@
+{
+  "app": { "titulo": "Planes de acciones de mejora", "centro": "Escuela Politécnica Superior" },
+  "nav": { "inicio": "Inicio", "usuarios": "Usuarios", "perfil": "Mi cuenta", "salir": "Cerrar sesión" },
+  "login": {
+    "titulo": "Acceso coordinación",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "entrar": "Entrar",
+    "error": "Correo o contraseña incorrectos",
+    "ayuda": "Las cuentas las crea la persona responsable de calidad del centro."
+  },
+  "estado": { "pendiente": "Pendiente", "en_proceso": "En proceso", "completada": "Completada", "cancelada": "Cancelada" },
+  "rol": { "admin": "Administración", "coordinador": "Coordinación" },
+  "inicio": {
+    "bienvenida": "Hola, {{nombre}}",
+    "misPlanes": "Tus planes de acciones",
+    "sinTitulaciones": "Tu usuario todavía no tiene titulaciones asignadas. Contacta con la persona responsable de calidad.",
+    "todas": "Como administrador tienes acceso a todos los planes."
+  },
+  "comun": {
+    "guardar": "Guardar", "cancelar": "Cancelar", "borrar": "Borrar", "editar": "Editar", "cargando": "Cargando…",
+    "error": "Se ha producido un error", "guardado": "Cambios guardados", "si": "Sí", "no": "No", "volver": "Volver"
+  },
+  "config": {
+    "falta": "Falta la configuración de Supabase",
+    "detalle": "Copia el fichero .env.example a .env.local y rellena VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY."
+  },
+  "noEncontrada": "Página no encontrada"
+}
