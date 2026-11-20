@@ -130,6 +130,20 @@ instrucciones para cada plataforma (en Android/Chrome, instalación directa).
 - Al publicar una versión nueva aparece un aviso «Actualizar» (no recarga sola).
 - Iconos en `public/` (`icono.svg` es el original; los PNG se generan a partir de él).
 
+## Avisos de plazos (notificaciones)
+
+Cada día (pg_cron, 06:00 UTC) se generan avisos para la coordinación de cada plan (y para la
+administración, del plan del centro): **inicio** de una acción pendiente, **fin próximo** (30 días
+antes por defecto) y **plazo vencido** (1 día después del fin sin completar). Cada aviso se envía
+una sola vez por acción y fecha; los días se configuran en «Avisos» (administración).
+
+- Envío: Edge Function `enviar-avisos` por **notificación push** (Web Push con claves VAPID que se
+  generan solas la primera vez). Cada usuario la activa en «Mi cuenta → Notificaciones» para cada
+  dispositivo (en iPhone, con la aplicación instalada e iOS 16.4+).
+- La tarea programada se autentica con un secreto generado por la base de datos; la dirección del
+  proyecto se guarda sola cuando entra un administrador en la aplicación.
+- Email: preferencia ya disponible; el envío se conectará cuando se elija el servicio de correo.
+
 ## Idiomas
 
 Interfaz preparada para castellano y valenciano (`src/i18n`). Los textos sin traducir y el

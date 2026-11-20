@@ -19,6 +19,8 @@ export interface Perfil {
   rol: RolUsuario
   activo: boolean
   created_at: string
+  avisos_push: boolean
+  avisos_email: boolean
 }
 
 export interface PerfilConTitulaciones extends Perfil {

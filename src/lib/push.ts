@@ -1,0 +1,93 @@
+/**
+ * Suscripción del dispositivo a las notificaciones push (avisos de plazos).
+ */
+import { estaInstalada } from '../components/Pwa'
+import { supabase } from './supabase'
+
+export type EstadoPush =
+  | 'no-soportado' //       navegador sin push
+  | 'requiere-instalar' //  iPhone/iPad: solo funciona con la aplicación instalada
+  | 'sin-service-worker' // modo desarrollo
+  | 'bloqueado' //          el usuario ha denegado el permiso
+  | 'inactivo'
+  | 'activo'
+
+const esIOS = () =>
+  /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes('Mac') && navigator.maxTouchPoints > 1)
+
+function base64UrlABytes(b64: string): Uint8Array<ArrayBuffer> {
+  const relleno = '='.repeat((4 - (b64.length % 4)) % 4)
+  const bin = atob((b64 + relleno).replace(/-/g, '+').replace(/_/g, '/'))
+  const out = new Uint8Array(new ArrayBuffer(bin.length))
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+  return out
+}
+
+/** Registro del service worker; en la primera visita se espera unos segundos a que se registre. */
+async function registro(): Promise<ServiceWorkerRegistration | null> {
+  if (!('serviceWorker' in navigator)) return null
+  if (await navigator.serviceWorker.getRegistration()) return navigator.serviceWorker.ready
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<null>((r) => setTimeout(() => r(null), 4000)), // sin service worker (modo desarrollo)
+  ])
+}
+
+export async function estadoPush(): Promise<EstadoPush> {
+  if (esIOS() && !estaInstalada()) return 'requiere-instalar'
+  if (!('PushManager' in window) || !('Notification' in window)) return 'no-soportado'
+  const r = await registro()
+  if (!r) return 'sin-service-worker'
+  if (Notification.permission === 'denied') return 'bloqueado'
+  const s = await r.pushManager.getSubscription()
+  if (!s) return 'inactivo'
+  // La suscripción existe en el navegador: comprobar que está registrada en el servidor
+  const { data } = await supabase.from('suscripciones_push').select('id').eq('endpoint', s.endpoint).maybeSingle()
+  return data ? 'activo' : 'inactivo'
+}
+
+async function clavePublica(): Promise<string> {
+  const { data } = await supabase.rpc('clave_publica_push')
+  if (data) return data as string
+  // La primera vez, la Edge Function genera las claves
+  const { data: r, error } = await supabase.functions.invoke('enviar-avisos', { body: { modo: 'clave' } })
+  if (error) throw error
+  return (r as { clave: string }).clave
+}
+
+function nombreDispositivo(): string {
+  const ua = navigator.userAgent
+  const so = /Android/.test(ua) ? 'Android' : esIOS() ? 'iPhone/iPad' : /Windows/.test(ua) ? 'Windows' : /Mac/.test(ua) ? 'Mac' : /Linux/.test(ua) ? 'Linux' : 'Otro'
+  const nav = /Edg\//.test(ua) ? 'Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : ''
+  return `${so}${nav ? ' · ' + nav : ''}${estaInstalada() ? ' · app' : ''}`
+}
+
+export async function activarPush(perfilId: string): Promise<void> {
+  const permiso = await Notification.requestPermission()
+  if (permiso !== 'granted') throw new Error('No se ha concedido el permiso de notificaciones')
+  const r = await registro()
+  if (!r) throw new Error('La aplicación no tiene service worker (¿modo desarrollo?)')
+  const s =
+    (await r.pushManager.getSubscription()) ??
+    (await r.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlABytes(await clavePublica()) }))
+  const j = s.toJSON()
+  const { error } = await supabase.from('suscripciones_push').upsert(
+    { perfil_id: perfilId, endpoint: s.endpoint, p256dh: j.keys!.p256dh, auth: j.keys!.auth, dispositivo: nombreDispositivo() },
+    { onConflict: 'endpoint' },
+  )
+  if (error) throw error
+}
+
+export async function desactivarPush(): Promise<void> {
+  const r = await registro()
+  const s = await r?.pushManager.getSubscription()
+  if (!s) return
+  await supabase.from('suscripciones_push').delete().eq('endpoint', s.endpoint)
+  await s.unsubscribe()
+}
+
+export async function enviarPrueba(): Promise<{ dispositivos: number; enviadas: number }> {
+  const { data, error } = await supabase.functions.invoke('enviar-avisos', { body: { modo: 'prueba' } })
+  if (error) throw error
+  return data as { dispositivos: number; enviadas: number }
+}

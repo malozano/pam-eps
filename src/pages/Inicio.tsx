@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { SugerenciaNotificaciones } from '../components/SugerenciaNotificaciones'
 import { EstadoBadge } from '../components/EstadoBadge'
 import { SituacionBadge } from '../components/SituacionBadge'
 import { fechaCorta } from '../lib/formato'
@@ -73,6 +74,7 @@ export function Inicio() {
   return (
     <Stack>
       <Title order={2}>{t('inicio.bienvenida', { nombre: perfil?.nombre || perfil?.email })}</Title>
+      <SugerenciaNotificaciones />
 
       <Stack gap="xs">
         <Group justify="space-between">

@@ -3,6 +3,7 @@ import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthProvider'
+import { Notificaciones } from '../components/Notificaciones'
 import { supabase } from '../lib/supabase'
 
 export function Perfil() {
@@ -16,7 +17,7 @@ export function Perfil() {
     },
   })
   return (
-    <Stack maw={480}>
+    <Stack maw={560}>
       <Title order={2}>{t('nav.perfil')}</Title>
       <Paper withBorder p="md">
         <Text fw={500}>{perfil?.nombre}</Text>
@@ -28,6 +29,7 @@ export function Perfil() {
           {!esAdmin && titulaciones.map((c) => <Badge key={c} variant="light">{c}</Badge>)}
         </Group>
       </Paper>
+      <Notificaciones />
       <Paper withBorder p="md">
         <form
           onSubmit={form.onSubmit(async (v) => {

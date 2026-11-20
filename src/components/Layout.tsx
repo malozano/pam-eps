@@ -1,7 +1,7 @@
 import { AppShell, Burger, Group, Menu, NavLink, Select, Text, UnstyledButton } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import {
-  IconChartBar, IconChevronDown, IconDeviceMobile, IconExternalLink, IconHome, IconLogout, IconUser, IconUsers, IconWorld,
+  IconBell, IconChartBar, IconChevronDown, IconDeviceMobile, IconExternalLink, IconHome, IconLogout, IconUser, IconUsers, IconWorld,
 } from '@tabler/icons-react'
 import { useEffect, useLayoutEffect } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,6 +9,8 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { cambiarIdioma, IDIOMAS } from '../i18n'
 import { guardarRutaApp } from '../lib/memoriaVista'
+import { supabase } from '../lib/supabase'
+import { direccionesAvisos } from '../lib/avisos'
 import { estaInstalada, InstalarApp } from './Pwa'
 
 export function Layout() {
@@ -22,6 +24,20 @@ export function Layout() {
   useLayoutEffect(() => {
     window.scrollTo(0, 0)
   }, [pathname])
+  // Un administrador deja guardadas las direcciones que necesita la tarea programada de avisos
+  useEffect(() => {
+    if (!esAdmin) return
+    const d = direccionesAvisos()
+    supabase
+      .from('ajustes_avisos')
+      .select('url_app, url_funciones')
+      .single()
+      .then(({ data }) => {
+        if (data && (data.url_app !== d.url_app || data.url_funciones !== d.url_funciones))
+          supabase.from('ajustes_avisos').update(d).eq('id', true).then(() => {})
+      })
+  }, [esAdmin])
+
   // Se recuerda la última página de gestión para poder volver desde los planes públicos
   useEffect(() => {
     guardarRutaApp(pathname + search)
@@ -85,6 +101,7 @@ export function Layout() {
         {enlace('/', t('nav.inicio'), <IconHome size={18} />)}
         {enlace('/indicadores', t('nav.indicadores'), <IconChartBar size={18} />)}
         {esAdmin && enlace('/admin/usuarios', t('nav.usuarios'), <IconUsers size={18} />)}
+        {esAdmin && enlace('/admin/avisos', t('nav.avisos'), <IconBell size={18} />)}
         <NavLink
           component="a"
           href={`${import.meta.env.BASE_URL}plan`}

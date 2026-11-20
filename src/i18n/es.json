@@ -10,7 +10,8 @@
     "salir": "Cerrar sesión",
     "indicadores": "Indicadores",
     "publicos": "Planes publicados",
-    "instalar": "Instalar la aplicación"
+    "instalar": "Instalar la aplicación",
+    "avisos": "Avisos"
   },
   "login": {
     "titulo": "Acceso coordinación",

@@ -53,4 +53,4 @@ jobs:
         run: npx supabase db push --remote --yes
 
       - name: Desplegar Edge Functions
-        run: npx supabase functions deploy admin-usuarios --remote="$PROJECT_ID" --use-api --yes
+        run: npx supabase functions deploy --remote="$PROJECT_ID" --use-api --yes
