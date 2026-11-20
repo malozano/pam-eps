@@ -7,7 +7,9 @@
     "inicio": "Inici",
     "usuarios": "Usuaris",
     "perfil": "El meu compte",
-    "salir": "Tanca la sessió"
+    "salir": "Tanca la sessió",
+    "indicadores": "Indicadors",
+    "publicos": "Plans publicats"
   },
   "estado": {
     "pendiente": "Pendent",

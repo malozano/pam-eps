@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { EstadoBadge } from '../components/EstadoBadge'
+import { ListaIndicadores } from '../components/ListaIndicadores'
 import { SeguimientoModal } from '../components/SeguimientoModal'
 import { SituacionBadge } from '../components/SituacionBadge'
 import { TextoConEnlaces } from '../components/TextoConEnlaces'
@@ -140,7 +141,9 @@ export function FichaAccion() {
             <Dato etiqueta="Fechas">
               {fechaCorta(a.fecha_inicio)} – {fechaCorta(a.fecha_fin)}
             </Dato>
-            <Dato etiqueta="Indicador">{a.indicador ?? '—'}</Dato>
+            <Dato etiqueta={a.indicadores.length > 1 ? 'Indicadores' : 'Indicador'}>
+              <ListaIndicadores indicadores={a.indicadores} />
+            </Dato>
             <Dato etiqueta="Origen">{a.origen ?? '—'}</Dato>
             {a.presupuesto !== null && (
               <Dato etiqueta="Presupuesto">

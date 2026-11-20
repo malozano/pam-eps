@@ -1,7 +1,7 @@
 import { AppShell, Burger, Group, Menu, NavLink, Select, Text, UnstyledButton } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import {
-  IconChevronDown, IconExternalLink, IconHome, IconLogout, IconUser, IconUsers, IconWorld,
+  IconChartBar, IconChevronDown, IconExternalLink, IconHome, IconLogout, IconUser, IconUsers, IconWorld,
 } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
@@ -66,13 +66,14 @@ export function Layout() {
       </AppShell.Header>
       <AppShell.Navbar p="xs">
         {enlace('/', t('nav.inicio'), <IconHome size={18} />)}
+        {enlace('/indicadores', t('nav.indicadores'), <IconChartBar size={18} />)}
         {esAdmin && enlace('/admin/usuarios', t('nav.usuarios'), <IconUsers size={18} />)}
         <NavLink
           component="a"
           href={`${import.meta.env.BASE_URL}plan`}
           target="_blank"
           rel="noopener"
-          label={t('publico.planes')}
+          label={t('nav.publicos')}
           leftSection={<IconWorld size={18} />}
           rightSection={<IconExternalLink size={14} />}
         />

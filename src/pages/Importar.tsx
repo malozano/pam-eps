@@ -15,7 +15,7 @@ import {
   analizarFilas, cruzarConExistentes, leerExcel, resultadoFila, type AnalisisExcel, type Resultado,
 } from '../lib/importacion'
 import { supabase } from '../lib/supabase'
-import { useAccionesTitulacion, useResponsables } from '../lib/useCatalogos'
+import { useAccionesTitulacion, useCatalogoIndicadores, useResponsables } from '../lib/useCatalogos'
 import { useTitulaciones } from '../lib/useTitulaciones'
 
 const ETIQUETA: Record<Resultado, { texto: string; color: string }> = {
@@ -46,6 +46,7 @@ export function Importar() {
   const [actualizar, setActualizar] = useState(false)
   const [filtro, setFiltro] = useState<Filtro>('todas')
   const [importando, setImportando] = useState(false)
+  const { data: catalogo } = useCatalogoIndicadores()
 
   // El análisis se recalcula si cambian los catálogos o las acciones existentes
   const analisisCompleto: AnalisisExcel | null = useMemo(
@@ -55,9 +56,10 @@ export function Importar() {
             titulacion: codigo,
             codigosTitulaciones: titulaciones.map((t) => t.codigo),
             responsables,
+            indicadores: catalogo?.indicadores.map((i) => i.codigo),
           })
         : null,
-    [datosExcel, codigo, titulaciones, responsables],
+    [datosExcel, codigo, titulaciones, responsables, catalogo],
   )
   const errorAnalisis =
     analisisCompleto?.error ?? (analisisCompleto && analisisCompleto.filas.length === 0 ? 'El fichero no contiene acciones.' : null)

@@ -4,6 +4,7 @@
  * para cada fila, los datos normalizados junto con errores (impiden importarla) y avisos.
  */
 import { parsearCodigo } from './cursos'
+import { esCodigo, separarIndicadores } from './indicadores'
 import type { EstadoAccion } from './tipos'
 
 export interface AccionImportable {
@@ -15,7 +16,7 @@ export interface AccionImportable {
   responsable: string | null
   fecha_inicio: string | null
   fecha_fin: string | null
-  indicador: string | null
+  indicadores: string[]
   origen: string | null
   estado: EstadoAccion
   presupuesto: number | null
@@ -51,6 +52,8 @@ export interface ContextoImportacion {
   /** Todos los códigos de titulación conocidos, para detectar ficheros de otra titulación */
   codigosTitulaciones: string[]
   responsables: string[]
+  /** Códigos del catálogo de indicadores (para avisar de códigos desconocidos) */
+  indicadores?: string[]
 }
 
 type Campo =
@@ -254,6 +257,12 @@ export function analizarFilas(filas: unknown[][], ctx: ContextoImportacion): Ana
     else if (!ctx.responsables.some((r) => normalizar(r) === normalizar(responsable)))
       avisos.push(`Responsable «${responsable}» no está en el catálogo`)
 
+    // Indicadores (una celda puede tener varios códigos separados por comas)
+    const indicadores = separarIndicadores(texto(celda(f, 'indicador')))
+    if (ctx.indicadores?.length)
+      for (const x of indicadores)
+        if (esCodigo(x) && !ctx.indicadores.includes(x)) avisos.push(`Indicador «${x}» no está en el catálogo`)
+
     // Presupuesto y casillas
     const presupuesto = importe(celda(f, 'presupuesto'))
     if (presupuesto === undefined)
@@ -276,7 +285,7 @@ export function analizarFilas(filas: unknown[][], ctx: ContextoImportacion): Ana
               : null,
             fecha_inicio: fi ?? null,
             fecha_fin: ff ?? null,
-            indicador: texto(celda(f, 'indicador')),
+            indicadores,
             origen: texto(celda(f, 'origen')),
             estado: est,
             presupuesto: presupuesto ?? null,

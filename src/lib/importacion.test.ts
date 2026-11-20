@@ -91,7 +91,7 @@ describe('analizarFilas', () => {
       tareas: '- Consulta al servicio.\n- Plan de organización.',
       responsable: 'Coordinación titulación',
       fecha_inicio: '2025-07-01', fecha_fin: '2025-07-31',
-      indicador: 'Si / No', origen: 'Informe CEN19', estado: 'pendiente',
+      indicadores: ['Si / No'], origen: 'Informe CEN19', estado: 'pendiente',
       presupuesto: null, es_mejora: true, observaciones: null, cerrada: false,
     })
   })
@@ -149,6 +149,14 @@ describe('analizarFilas', () => {
     expect(f.avisos.join(' ')).toMatch(/Pendiente.*Decanato.*Presupuesto/s)
     expect(f.datos?.estado).toBe('pendiente')
     expect(f.datos?.presupuesto).toBeNull()
+  })
+
+  it('varios indicadores en una celda y aviso de códigos fuera de catálogo', () => {
+    const r = analizarFilas([CABECERA, fila({ ...base, 'Indicador': 'ISV2, VER02, XYZ99' })], {
+      ...ctx, indicadores: ['ISV2', 'VER02'],
+    })
+    expect(r.filas[0].datos?.indicadores).toEqual(['ISV2', 'VER02', 'XYZ99'])
+    expect(r.filas[0].avisos).toEqual(['Indicador «XYZ99» no está en el catálogo'])
   })
 
   it('normaliza el responsable al nombre del catálogo', () => {

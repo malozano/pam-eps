@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { EstadoBadge } from '../components/EstadoBadge'
+import { IndicadoresInput } from '../components/IndicadoresInput'
 import { anyoPorDefecto, anyosSeleccionables, etiquetaCurso } from '../lib/cursos'
 import { supabase } from '../lib/supabase'
 import type { Accion } from '../lib/tipos'
@@ -25,7 +26,7 @@ interface Valores {
   responsable: string | null
   fecha_inicio: string | null
   fecha_fin: string | null
-  indicador: string
+  indicadores: string[]
   origen: string
   es_mejora: boolean
   presupuesto: number | string
@@ -72,7 +73,7 @@ export function EditarAccion() {
       responsable: null,
       fecha_inicio: null,
       fecha_fin: null,
-      indicador: '',
+      indicadores: [],
       origen: '',
       es_mejora: true,
       presupuesto: '',
@@ -99,7 +100,7 @@ export function EditarAccion() {
       responsable: accion.responsable,
       fecha_inicio: accion.fecha_inicio,
       fecha_fin: accion.fecha_fin,
-      indicador: accion.indicador ?? '',
+      indicadores: accion.indicadores,
       origen: accion.origen ?? '',
       es_mejora: accion.es_mejora,
       presupuesto: accion.presupuesto ?? '',
@@ -120,10 +121,7 @@ export function EditarAccion() {
     return () => window.removeEventListener('beforeunload', h)
   }, [sucio])
 
-  const indicadores = useMemo(() => {
-    const usados = acciones.map((a) => a.indicador).filter((x): x is string => !!x)
-    return Array.from(new Set(['Si / No', ...usados])).sort((a, b) => a.localeCompare(b, 'es'))
-  }, [acciones])
+  const indicadoresUsados = useMemo(() => acciones.flatMap((a) => a.indicadores), [acciones])
   const origenes = useMemo(() => {
     const usados = acciones.map((a) => a.origen).filter((x): x is string => !!x)
     return Array.from(new Set([...origenesSugeridos(Number(form.values.anyo)), ...usados]))
@@ -153,7 +151,7 @@ export function EditarAccion() {
       responsable: v.responsable,
       fecha_inicio: v.fecha_inicio,
       fecha_fin: v.fecha_fin,
-      indicador: nulo(v.indicador),
+      indicadores: v.indicadores.map((x) => x.trim()).filter(Boolean),
       origen: nulo(v.origen),
       es_mejora: v.es_mejora,
       presupuesto: v.presupuesto === '' ? null : Number(v.presupuesto),
@@ -295,20 +293,19 @@ export function EditarAccion() {
                   {...form.getInputProps('fecha_fin')}
                 />
               </SimpleGrid>
-              <SimpleGrid cols={{ base: 1, sm: 2 }}>
-                <Autocomplete
-                  label="Indicador"
-                  description="Código del indicador a mejorar (p. ej. UATR01) o «Si / No»"
-                  data={indicadores}
-                  {...form.getInputProps('indicador')}
-                />
-                <Autocomplete
-                  label="Origen o problema"
-                  description="Informe del que surge la acción o problema que resuelve"
-                  data={origenes}
-                  {...form.getInputProps('origen')}
-                />
-              </SimpleGrid>
+              <IndicadoresInput
+                label="Indicadores"
+                description="Indicadores que se pretende mejorar. Busca por código o texto (p. ej. «UATR01», «abandono»); «Si / No» si basta con saber si se ha conseguido. Para uno sin código, escríbelo y pulsa Intro."
+                placeholder={form.values.indicadores.length ? '' : 'Buscar o escribir…'}
+                usados={indicadoresUsados}
+                {...form.getInputProps('indicadores')}
+              />
+              <Autocomplete
+                label="Origen o problema"
+                description="Informe del que surge la acción o problema que resuelve"
+                data={origenes}
+                {...form.getInputProps('origen')}
+              />
             </Stack>
           </Paper>
 

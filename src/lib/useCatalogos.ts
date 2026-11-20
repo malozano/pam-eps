@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from './supabase'
+import type { IndicadorCatalogo, Procedimiento } from './indicadores'
 import type { Accion, EntradaHistorial } from './tipos'
 
 /**
@@ -53,6 +54,28 @@ export function useHistorial(accionId: string | undefined) {
         .order('id', { ascending: false })
       if (error) throw error
       return data as EntradaHistorial[]
+    },
+  })
+}
+
+/** Catálogo de indicadores y procedimientos (lectura pública). */
+export function useCatalogoIndicadores() {
+  return useQuery({
+    queryKey: ['catalogo_indicadores'],
+    staleTime: 60 * 60 * 1000,
+    queryFn: async () => {
+      const [ind, proc] = await Promise.all([
+        supabase.from('catalogo_indicadores').select('*').order('orden'),
+        supabase.from('procedimientos').select('*').order('orden'),
+      ])
+      if (ind.error) throw ind.error
+      if (proc.error) throw proc.error
+      const indicadores = ind.data as IndicadorCatalogo[]
+      return {
+        indicadores,
+        procedimientos: proc.data as Procedimiento[],
+        porCodigo: new Map(indicadores.map((i) => [i.codigo, i])),
+      }
     },
   })
 }

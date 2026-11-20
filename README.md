@@ -18,6 +18,7 @@ de la Escuela Politécnica Superior (y el plan transversal del centro, código `
 | 3 | Gestión de acciones (listado con filtros, alta con código automático, edición, borrado) y avisos de plazos en el inicio | ✅ |
 | 4 | Seguimiento: ficha con historial, cambios de estado con observaciones/evidencias/fechas, informe CEN19 y cierre de acciones reportadas | ✅ |
 | 5 | Vista pública por titulación/curso (`/plan/<código>/<año>`, castellano/valenciano) y exportación a Excel (formato común, reimportable) | ✅ |
+| 5b | Catálogo de indicadores (79 con código, por procedimiento), varios indicadores por acción, página de consulta y mantenimiento | ✅ |
 | 6 | Piloto | ⏳ |
 
 ## Modelo de datos
@@ -30,6 +31,10 @@ de la Escuela Politécnica Superior (y el plan transversal del centro, código `
   números de acciones borradas no se reutilizan. Las acciones importadas conservan su
   código original (p. ej. `AM-MUDSDM-2023-01`).
 - `historial`: alta y cambios de estado, con observaciones, evidencias y usuario.
+- `procedimientos` y `catalogo_indicadores`: indicadores con código del Sistema de Calidad
+  (documento «Indicadores por procedimiento», V04 sep. 2026), agrupados por procedimiento.
+  Cada acción guarda una lista de indicadores (`indicadores text[]`): códigos del catálogo,
+  «Si / No» o textos sin código. En Excel van en una celda separados por comas.
 - `responsables`: catálogo de roles responsables. Cada uno indica si sirve para los planes de
   titulación (`para_titulaciones`), para el plan del centro (`para_centro`) o para ambos.
 - `plan_publico(titulacion, anyo)`: función pública que devuelve las **acciones de mejora**

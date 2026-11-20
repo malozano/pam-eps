@@ -7,7 +7,9 @@
     "inicio": "Inicio",
     "usuarios": "Usuarios",
     "perfil": "Mi cuenta",
-    "salir": "Cerrar sesión"
+    "salir": "Cerrar sesión",
+    "indicadores": "Indicadores",
+    "publicos": "Planes publicados"
   },
   "login": {
     "titulo": "Acceso coordinación",

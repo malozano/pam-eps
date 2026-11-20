@@ -36,7 +36,7 @@ export interface Accion {
   responsable: string | null
   fecha_inicio: string | null
   fecha_fin: string | null
-  indicador: string | null
+  indicadores: string[]
   origen: string | null
   estado: EstadoAccion
   presupuesto: number | null

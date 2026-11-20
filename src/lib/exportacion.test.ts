@@ -8,12 +8,12 @@ const acciones: AccionExportable[] = [
   {
     codigo: 'AM-D110-2026-01', nombre: 'Mejorar la difusión', tareas: '(1) Emails\n(2) Carteles',
     responsable: 'Coordinación titulación', fecha_inicio: '2026-09-01', fecha_fin: '2027-03-31',
-    indicador: 'UATR01', origen: 'CEN19', estado: 'en_proceso', presupuesto: 1500.5, es_mejora: true,
+    indicadores: ['ISV2', 'VER02'], origen: 'CEN19', estado: 'en_proceso', presupuesto: 1500.5, es_mejora: true,
     observaciones: 'Emails enviados', cerrada: false,
   },
   {
     codigo: 'AM-MUDSDM-2023-01', nombre: 'Antigua', tareas: null, responsable: 'Coordinación TFG/M',
-    fecha_inicio: '2023-09-01', fecha_fin: '2023-10-31', indicador: 'Si / No', origen: null, estado: 'completada',
+    fecha_inicio: '2023-09-01', fecha_fin: '2023-10-31', indicadores: ['Si / No'], origen: null, estado: 'completada',
     presupuesto: null, es_mejora: false, observaciones: null, cerrada: true,
   },
 ]
@@ -36,6 +36,7 @@ describe('exportación a Excel', () => {
       'Estado', 'Presupuesto', 'Es acción de mejora', 'Observaciones', 'Cerrada',
     ])
     expect(ws.getCell('I2').value).toBe('2-En proceso')
+    expect(ws.getCell('G2').value).toBe('ISV2, VER02')
     expect(ws.getCell('E2').value).toEqual(new Date(Date.UTC(2026, 8, 1)))
     expect(ws.getCell('E2').numFmt).toBe('dd/mm/yyyy')
     expect(ws.getCell('J3').value).toBe('n/a')
@@ -67,7 +68,7 @@ describe('exportación a Excel', () => {
       acciones.map((a) => ({
         codigo: a.codigo, anyo: Number(a.codigo.split('-')[2]), numero: Number(a.codigo.split('-')[3]),
         nombre: a.nombre, tareas: a.tareas, responsable: a.responsable, fecha_inicio: a.fecha_inicio,
-        fecha_fin: a.fecha_fin, indicador: a.indicador, origen: a.origen, estado: a.estado,
+        fecha_fin: a.fecha_fin, indicadores: a.indicadores, origen: a.origen, estado: a.estado,
         presupuesto: a.presupuesto, es_mejora: a.es_mejora, observaciones: a.observaciones, cerrada: a.cerrada,
       })),
     )

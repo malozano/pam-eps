@@ -7,6 +7,7 @@ import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { EstadoBadge } from '../components/EstadoBadge'
+import { ListaIndicadores } from '../components/ListaIndicadores'
 import { TextoConEnlaces } from '../components/TextoConEnlaces'
 import { cambiarIdioma, IDIOMAS } from '../i18n'
 import { anyoPorDefecto, etiquetaCurso } from '../lib/cursos'
@@ -26,7 +27,7 @@ export interface FilaPlanPublico {
   responsable: string | null
   fecha_inicio: string | null
   fecha_fin: string | null
-  indicador: string | null
+  indicadores: string[]
   origen: string | null
   estado: EstadoAccion
   presupuesto: number | null
@@ -139,7 +140,9 @@ function TarjetaAccion({ a }: { a: FilaPlanPublico }) {
           <Dato etiqueta={t('publico.fechas')}>
             {fechaCorta(a.fecha_inicio)} – {fechaCorta(a.fecha_fin)}
           </Dato>
-          <Dato etiqueta={t('publico.indicador')}>{a.indicador ?? '—'}</Dato>
+          <Dato etiqueta={t('publico.indicador')}>
+            <ListaIndicadores indicadores={a.indicadores} />
+          </Dato>
           <Dato etiqueta={t('publico.origen')}>{a.origen ?? '—'}</Dato>
           {a.presupuesto !== null && (
             <Dato etiqueta={t('publico.presupuesto')}>

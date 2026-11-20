@@ -4,6 +4,7 @@
  * El fichero generado se puede volver a importar.
  */
 import { etiquetaCurso } from './cursos'
+import { unirIndicadores } from './indicadores'
 import type { EstadoAccion } from './tipos'
 
 export const ESTADOS_EXCEL: Record<EstadoAccion, string> = {
@@ -20,7 +21,7 @@ export interface AccionExportable {
   responsable: string | null
   fecha_inicio: string | null
   fecha_fin: string | null
-  indicador: string | null
+  indicadores: string[]
   origen: string | null
   estado: EstadoAccion
   presupuesto: number | null
@@ -60,7 +61,7 @@ const COLUMNAS: Columna[] = [
   { titulo: 'Responsable / Ámbito', ancho: 26, valor: (a) => a.responsable },
   { titulo: 'Fecha inicio', ancho: 13, valor: (a) => aFecha(a.fecha_inicio), fecha: true },
   { titulo: 'Fecha fin', ancho: 13, valor: (a) => aFecha(a.fecha_fin), fecha: true },
-  { titulo: 'Indicador', ancho: 14, valor: (a) => a.indicador },
+  { titulo: 'Indicador', ancho: 18, valor: (a) => unirIndicadores(a.indicadores) || null },
   { titulo: 'Origen', ancho: 36, valor: (a) => a.origen },
   { titulo: 'Estado', ancho: 15, valor: (a) => ESTADOS_EXCEL[a.estado] },
   { titulo: 'Presupuesto', ancho: 13, valor: (a) => a.presupuesto ?? 'n/a', importe: true },

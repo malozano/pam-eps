@@ -6,6 +6,7 @@ import { EditarAccion } from './pages/EditarAccion'
 import { FichaAccion } from './pages/FichaAccion'
 import { GestionPlan } from './pages/GestionPlan'
 import { Importar } from './pages/Importar'
+import { Indicadores } from './pages/Indicadores'
 import { InformeSeguimiento } from './pages/InformeSeguimiento'
 import { Inicio } from './pages/Inicio'
 import { Login } from './pages/Login'
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="gestion/:codigo/accion/:id/editar" element={<EditarAccion key="editar" />} />
         <Route path="gestion/:codigo/informe" element={<InformeSeguimiento />} />
         <Route path="perfil" element={<Perfil />} />
+        <Route path="indicadores" element={<Indicadores />} />
         <Route
           path="admin/usuarios"
           element={
