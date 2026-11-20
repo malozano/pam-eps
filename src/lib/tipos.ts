@@ -7,7 +7,6 @@ export const ESTADOS: EstadoAccion[] = ['pendiente', 'en_proceso', 'completada',
 export interface Titulacion {
   codigo: string
   nombre: string
-  siglas: string | null
   tipo: TipoTitulacion
   activa: boolean
   orden: number

@@ -63,7 +63,7 @@ de la Escuela Politécnica Superior (y el plan transversal del centro, código `
 5. En *Authentication → Sign In / Providers* desactivar **Allow new users to sign up**:
    las cuentas solo las crea el administrador desde la aplicación.
 6. En *Authentication → URL Configuration* poner como *Site URL* la URL publicada
-   (p. ej. `https://<usuario>.github.io/planes-mejora-eps/`).
+   (p. ej. `https://<usuario>.github.io/pam-eps/`).
 
 > **Plan gratuito:** Supabase pausa los proyectos gratuitos tras 7 días sin actividad.
 > Para producción conviene el plan Pro, o al menos reactivarlo desde el panel si se pausa.

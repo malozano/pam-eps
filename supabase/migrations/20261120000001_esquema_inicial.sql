@@ -16,12 +16,10 @@ create type public.tipo_titulacion as enum ('centro', 'grado', 'master');
 create table public.titulaciones (
   codigo  text primary key check (codigo ~ '^[A-Z0-9]{3,6}$'),
   nombre  text not null,
-  siglas  text,
   tipo    public.tipo_titulacion not null,
   activa  boolean not null default true,
   orden   integer not null default 100
 );
-comment on column public.titulaciones.siglas is 'Siglas usadas en el nombre del fichero exportado (p.ej. MUDSDM)';
 
 -- ---------------------------------------------------------------------
 -- Perfiles de usuario (1:1 con auth.users) y asignación a titulaciones

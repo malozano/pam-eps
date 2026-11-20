@@ -1,4 +1,4 @@
-import { Alert, Badge, Card, Group, SimpleGrid, Skeleton, Stack, Text, Title } from '@mantine/core'
+import { Alert, Badge, Card, SimpleGrid, Skeleton, Stack, Text, Title } from '@mantine/core'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
@@ -25,10 +25,7 @@ export function Inicio() {
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
           {mias.map((tit) => (
             <Card key={tit.codigo} withBorder component={Link} to={`/gestion/${tit.codigo}`}>
-              <Group justify="space-between" mb={4}>
-                <Badge variant="light">{tit.codigo}</Badge>
-                {tit.siglas && <Text size="xs" c="dimmed">{tit.siglas}</Text>}
-              </Group>
+              <Badge variant="light" mb={4}>{tit.codigo}</Badge>
               <Text fw={500}>{tit.nombre}</Text>
             </Card>
           ))}
