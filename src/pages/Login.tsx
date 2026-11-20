@@ -1,9 +1,10 @@
-import { Alert, Anchor, Button, Center, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Button, Center, Group, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { estaInstalada, InstalarApp } from '../components/Pwa'
 import { supabase } from '../lib/supabase'
 
 export function Login() {
@@ -13,6 +14,7 @@ export function Login() {
   const location = useLocation()
   const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+  const [instalar, setInstalar] = useState(false)
   const form = useForm({
     initialValues: { email: '', password: '' },
     validate: {
@@ -55,12 +57,20 @@ export function Login() {
             <Text size="xs" c="dimmed">
               {t('login.ayuda')}
             </Text>
-            <Anchor component={Link} to="/plan" size="sm">
-              {t('publico.planes')} →
-            </Anchor>
+            <Group justify="space-between">
+              <Anchor component={Link} to="/plan" size="sm">
+                {t('publico.planes')} →
+              </Anchor>
+              {!estaInstalada() && (
+                <Anchor component="button" type="button" size="sm" onClick={() => setInstalar(true)}>
+                  {t('nav.instalar')}
+                </Anchor>
+              )}
+            </Group>
           </Stack>
         </form>
       </Paper>
+      <InstalarApp opened={instalar} onClose={() => setInstalar(false)} />
     </Center>
   )
 }

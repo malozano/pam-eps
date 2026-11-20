@@ -14,6 +14,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { AuthProvider } from './auth/AuthProvider'
+import { AvisoActualizacion } from './components/Pwa'
 import i18n from './i18n'
 import { configuracionCompleta } from './lib/supabase'
 
@@ -28,6 +29,7 @@ createRoot(document.getElementById('root')!).render(
           <DatesProvider settings={{ locale: 'es', firstDayOfWeek: 1 }}>
             <ModalsProvider>
               <Notifications position="top-right" />
+              <AvisoActualizacion />
               <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
                 <AuthProvider>
                   <App />

@@ -120,6 +120,16 @@ Desde la página «Indicadores» (administración):
 Muestran solo acciones marcadas como «acción de mejora»: las del curso indicado más las de
 cursos anteriores que siguen pendientes o en proceso. No requieren iniciar sesión.
 
+## Aplicación instalable (móvil y escritorio)
+
+La web es una PWA: se puede instalar desde el navegador y se abre a pantalla completa con su
+icono. Menú de usuario (o pantalla de acceso) → «Instalar la aplicación» muestra las
+instrucciones para cada plataforma (en Android/Chrome, instalación directa).
+
+- `src/sw.ts`: service worker (caché de la aplicación; nunca de los datos de Supabase).
+- Al publicar una versión nueva aparece un aviso «Actualizar» (no recarga sola).
+- Iconos en `public/` (`icono.svg` es el original; los PNG se generan a partir de él).
+
 ## Idiomas
 
 Interfaz preparada para castellano y valenciano (`src/i18n`). Los textos sin traducir y el

@@ -1,16 +1,18 @@
 import { AppShell, Burger, Group, Menu, NavLink, Select, Text, UnstyledButton } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import {
-  IconChartBar, IconChevronDown, IconExternalLink, IconHome, IconLogout, IconUser, IconUsers, IconWorld,
+  IconChartBar, IconChevronDown, IconDeviceMobile, IconExternalLink, IconHome, IconLogout, IconUser, IconUsers, IconWorld,
 } from '@tabler/icons-react'
 import { useLayoutEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { cambiarIdioma, IDIOMAS } from '../i18n'
+import { estaInstalada, InstalarApp } from './Pwa'
 
 export function Layout() {
   const [abierto, { toggle, close }] = useDisclosure()
+  const [instalarAbierto, { open: abrirInstalar, close: cerrarInstalar }] = useDisclosure()
   const { t, i18n } = useTranslation()
   const { perfil, esAdmin, salir } = useAuth()
   const { pathname } = useLocation()
@@ -61,6 +63,11 @@ export function Layout() {
                 <Menu.Item leftSection={<IconUser size={16} />} onClick={() => navigate('/perfil')}>
                   {t('nav.perfil')}
                 </Menu.Item>
+                {!estaInstalada() && (
+                  <Menu.Item leftSection={<IconDeviceMobile size={16} />} onClick={abrirInstalar}>
+                    {t('nav.instalar')}
+                  </Menu.Item>
+                )}
                 <Menu.Item leftSection={<IconLogout size={16} />} onClick={() => salir().then(() => navigate('/login'))}>
                   {t('nav.salir')}
                 </Menu.Item>
@@ -86,6 +93,7 @@ export function Layout() {
       <AppShell.Main>
         <Outlet />
       </AppShell.Main>
+      <InstalarApp opened={instalarAbierto} onClose={cerrarInstalar} />
     </AppShell>
   )
 }
