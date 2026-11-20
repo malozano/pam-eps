@@ -1,0 +1,55 @@
+name: Desplegar Supabase
+
+# Aplica las migraciones de la base de datos y despliega las Edge Functions en el
+# proyecto Supabase de producción cuando cambia algo en supabase/ (o a mano).
+#
+# Configuración necesaria (Settings > Secrets and variables > Actions):
+#   Variables: SUPABASE_PROJECT_ID   (referencia del proyecto, p. ej. abcdefghijklmnop)
+#   Secrets:   SUPABASE_ACCESS_TOKEN (token personal: supabase.com/dashboard/account/tokens)
+#              SUPABASE_DB_PASSWORD  (contraseña de la base de datos del proyecto)
+
+on:
+  push:
+    branches: [main]
+    paths: ['supabase/**', 'tests/db/**']
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-produccion
+  cancel-in-progress: false
+
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_ID: ${{ vars.SUPABASE_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Comprobar configuración
+        run: |
+          for v in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD PROJECT_ID; do
+            if [ -z "${!v}" ]; then echo "::error::Falta $v (ver cabecera del workflow)"; exit 1; fi
+          done
+
+      - name: Pruebas de base de datos antes de desplegar
+        run: npm run test:db
+
+      - name: Vincular proyecto
+        run: npx supabase link --project-ref "$PROJECT_ID"
+
+      - name: Migraciones pendientes
+        run: npx supabase migration list
+
+      - name: Aplicar migraciones
+        run: npx supabase db push
+
+      - name: Desplegar Edge Functions
+        run: npx supabase functions deploy admin-usuarios --project-ref "$PROJECT_ID"

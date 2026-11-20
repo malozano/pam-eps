@@ -39,33 +39,28 @@ de la Escuela Politécnica Superior (y el plan transversal del centro, código `
 
 ### 1. Supabase
 
-1. Crear un proyecto en <https://supabase.com/dashboard> en la región **Central EU (Frankfurt)**.
-2. Aplicar las migraciones desde este repositorio:
+1. Crear un proyecto en <https://supabase.com/dashboard> en una región de la UE.
+2. Configurar el despliegue automático (workflow `Desplegar Supabase`). En GitHub,
+   *Settings → Secrets and variables → Actions*:
+   - Variable `SUPABASE_PROJECT_ID`: referencia del proyecto (*Project Settings → General → Project ID*).
+   - Secret `SUPABASE_ACCESS_TOKEN`: token personal creado en <https://supabase.com/dashboard/account/tokens>.
+   - Secret `SUPABASE_DB_PASSWORD`: contraseña de la base de datos (se puede restablecer en
+     *Database → Settings*).
 
-   ```bash
-   npx supabase login
-   npx supabase link --project-ref <ref-del-proyecto>
-   npx supabase db push
+   Después lanzar el workflow *Actions → Desplegar Supabase → Run workflow*. Aplica las
+   migraciones pendientes y despliega la función `admin-usuarios`. A partir de ahí se ejecuta
+   solo cada vez que cambia algo en `supabase/`.
+3. Crear la cuenta de administración: en *Authentication → Users → Add user* (con
+   «Auto Confirm User») y después, en *SQL Editor*:
+
+   ```sql
+   update public.perfiles set rol = 'admin', nombre = 'Nombre Apellidos' where email = 'calidad@ua.es';
    ```
 
-3. Desplegar la función de gestión de usuarios:
-
-   ```bash
-   npx supabase functions deploy admin-usuarios
-   ```
-
-4. Crear la cuenta de administración (la clave *secret/service_role* está en
-   *Project Settings → API Keys*; no la subas nunca al repositorio):
-
-   ```bash
-   SUPABASE_URL=https://<ref>.supabase.co SUPABASE_SERVICE_ROLE_KEY=<clave-secreta> \
-     node scripts/crear-admin.mjs calidad@ua.es '<contraseña-larga>' 'Nombre Apellidos'
-   ```
-
-5. En *Authentication → Sign In / Providers* desactivar **Allow new users to sign up**:
+4. En *Authentication → Sign In / Providers* desactivar **Allow new users to sign up**:
    las cuentas solo las crea el administrador desde la aplicación.
-6. En *Authentication → URL Configuration* poner como *Site URL* la URL publicada
-   (p. ej. `https://<usuario>.github.io/pam-eps/`).
+5. En *Authentication → URL Configuration* poner como *Site URL* la URL publicada
+   (`https://<usuario>.github.io/pam-eps/`).
 
 > **Plan gratuito:** Supabase pausa los proyectos gratuitos tras 7 días sin actividad.
 > Para producción conviene el plan Pro, o al menos reactivarlo desde el panel si se pausa.
