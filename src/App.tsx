@@ -7,6 +7,7 @@ import { FichaAccion } from './pages/FichaAccion'
 import { GestionPlan } from './pages/GestionPlan'
 import { Importar } from './pages/Importar'
 import { Indicadores } from './pages/Indicadores'
+import { ActualizarCatalogo } from './pages/ActualizarCatalogo'
 import { InformeSeguimiento } from './pages/InformeSeguimiento'
 import { Inicio } from './pages/Inicio'
 import { Login } from './pages/Login'
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="gestion/:codigo/informe" element={<InformeSeguimiento />} />
         <Route path="perfil" element={<Perfil />} />
         <Route path="indicadores" element={<Indicadores />} />
+        <Route path="indicadores/actualizar" element={<ActualizarCatalogo />} />
         <Route
           path="admin/usuarios"
           element={

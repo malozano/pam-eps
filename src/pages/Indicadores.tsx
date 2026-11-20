@@ -1,22 +1,27 @@
 import {
-  ActionIcon, Alert, Badge, Button, Group, Modal, MultiSelect, Paper, Select, Skeleton, Stack, Switch, Text, Textarea,
-  TextInput, Title, Tooltip,
+  ActionIcon, Alert, Badge, Button, Divider, Group, Modal, MultiSelect, Paper, Select, Skeleton, Stack, Switch, Text,
+  Textarea, TextInput, Title, Tooltip,
 } from '@mantine/core'
+import { modals } from '@mantine/modals'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
-import { IconPencil, IconPlus, IconSearch } from '@tabler/icons-react'
+import { IconArrowsExchange, IconDownload, IconPencil, IconPlus, IconSearch, IconTrash, IconUpload } from '@tabler/icons-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { generarExcelCatalogo } from '../lib/catalogo'
+import { descargar } from '../lib/exportacion'
 import { normalizar } from '../lib/importacion'
 import type { IndicadorCatalogo, Procedimiento } from '../lib/indicadores'
 import { supabase } from '../lib/supabase'
-import { useCatalogoIndicadores } from '../lib/useCatalogos'
+import { useCatalogoIndicadores, useUsoIndicadores } from '../lib/useCatalogos'
 
 /** Catálogo de indicadores: consulta y búsqueda para todos; mantenimiento para administración. */
 export function Indicadores() {
   const { esAdmin } = useAuth()
   const { data: cat, isLoading } = useCatalogoIndicadores()
+  const { data: uso } = useUsoIndicadores()
   const [q, setQ] = useState('')
   const [verInactivos, setVerInactivos] = useState(false)
   const [editando, setEditando] = useState<IndicadorCatalogo | 'nuevo' | null>(null)
@@ -44,9 +49,22 @@ export function Indicadores() {
           </Text>
         </div>
         {esAdmin && (
-          <Button leftSection={<IconPlus size={16} />} onClick={() => setEditando('nuevo')}>
-            Nuevo indicador
-          </Button>
+          <Group gap="xs">
+            <Button
+              variant="default"
+              leftSection={<IconDownload size={16} />}
+              disabled={!cat}
+              onClick={async () => cat && descargar(await generarExcelCatalogo(cat.indicadores, cat.procedimientos), 'catalogo-indicadores.xlsx')}
+            >
+              Exportar catálogo
+            </Button>
+            <Button variant="default" leftSection={<IconUpload size={16} />} component={Link} to="/indicadores/actualizar">
+              Actualizar desde Excel
+            </Button>
+            <Button leftSection={<IconPlus size={16} />} onClick={() => setEditando('nuevo')}>
+              Nuevo indicador
+            </Button>
+          </Group>
         )}
       </Group>
       <Group align="flex-end">
@@ -83,6 +101,11 @@ export function Indicadores() {
                         <Text ff="monospace" fw={700}>{i.codigo}</Text>
                         <Text fw={500}>{i.nombre}</Text>
                         {!i.activo && <Badge size="xs" color="gray">Inactivo</Badge>}
+                        {uso && (
+                          <Badge size="xs" variant="light" color={uso.get(i.codigo) ? 'blue' : 'gray'}>
+                            {uso.get(i.codigo) === 1 ? '1 acción' : `${uso.get(i.codigo) ?? 0} acciones`}
+                          </Badge>
+                        )}
                       </Group>
                       {i.definicion && <Text size="sm" c="dimmed">{i.definicion}</Text>}
                       {i.procedimientos.length > 1 && (
@@ -115,6 +138,7 @@ export function Indicadores() {
               indicador={editando === 'nuevo' ? null : editando}
               procedimientos={cat.procedimientos}
               existentes={cat.indicadores.map((i) => i.codigo)}
+              uso={editando === 'nuevo' ? 0 : (uso?.get(editando.codigo) ?? 0)}
               onClose={() => setEditando(null)}
             />
           )}
@@ -128,8 +152,10 @@ function FormIndicador(props: {
   indicador: IndicadorCatalogo | null
   procedimientos: Procedimiento[]
   existentes: string[]
+  uso: number
   onClose: () => void
 }) {
+  const [nuevoCodigo, setNuevoCodigo] = useState('')
   const qc = useQueryClient()
   const [guardando, setGuardando] = useState(false)
   const i = props.indicador
@@ -154,6 +180,63 @@ function FormIndicador(props: {
     },
   })
   const opciones = props.procedimientos.map((p) => ({ value: p.codigo, label: `${p.codigo} · ${p.nombre}` }))
+  const refrescar = () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: ['catalogo_indicadores'] }),
+      qc.invalidateQueries({ queryKey: ['uso_indicadores'] }),
+      qc.invalidateQueries({ queryKey: ['acciones'] }),
+    ])
+
+  function cambiarCodigo(ind: IndicadorCatalogo, nuevo: string) {
+    const fusion = props.existentes.includes(nuevo)
+    modals.openConfirmModal({
+      title: fusion ? `Fusionar ${ind.codigo} en ${nuevo}` : `Cambiar ${ind.codigo} por ${nuevo}`,
+      children: (
+        <Text size="sm">
+          {fusion
+            ? `El indicador ${nuevo} ya existe. Las acciones que usan ${ind.codigo} pasarán a usar ${nuevo} y ${ind.codigo} se eliminará del catálogo.`
+            : `El indicador pasará a tener el código ${nuevo}.`}{' '}
+          {props.uso > 0 && `Se actualizarán ${props.uso === 1 ? '1 acción' : `${props.uso} acciones`}.`} No se puede deshacer
+          automáticamente.
+        </Text>
+      ),
+      labels: { confirm: fusion ? 'Fusionar' : 'Cambiar código', cancel: 'Cancelar' },
+      confirmProps: { color: fusion ? 'orange' : undefined },
+      onConfirm: async () => {
+        const { data, error } = await supabase.rpc('cambiar_codigo_indicador', { p_antiguo: ind.codigo, p_nuevo: nuevo })
+        if (error) {
+          notifications.show({ color: 'red', title: 'No se ha cambiado', message: error.message })
+          return
+        }
+        await refrescar()
+        const r = data as { fusion: boolean; acciones: number }
+        notifications.show({
+          color: 'green',
+          message: `${r.fusion ? 'Fusionado' : 'Código cambiado'}: ${ind.codigo} → ${nuevo} (${r.acciones === 1 ? '1 acción actualizada' : `${r.acciones} acciones actualizadas`})`,
+        })
+        props.onClose()
+      },
+    })
+  }
+
+  function borrar(ind: IndicadorCatalogo) {
+    modals.openConfirmModal({
+      title: `Borrar ${ind.codigo}`,
+      children: <Text size="sm">Se eliminará «{ind.nombre}» del catálogo. Ninguna acción lo usa.</Text>,
+      labels: { confirm: 'Borrar', cancel: 'Cancelar' },
+      confirmProps: { color: 'red' },
+      onConfirm: async () => {
+        const { error } = await supabase.from('catalogo_indicadores').delete().eq('codigo', ind.codigo)
+        if (error) {
+          notifications.show({ color: 'red', title: 'No se ha borrado', message: error.message })
+          return
+        }
+        await refrescar()
+        notifications.show({ color: 'green', message: `${ind.codigo} borrado del catálogo` })
+        props.onClose()
+      },
+    })
+  }
 
   return (
     <form
@@ -207,6 +290,43 @@ function FormIndicador(props: {
           <Button variant="default" onClick={props.onClose}>Cancelar</Button>
           <Button type="submit" loading={guardando}>Guardar</Button>
         </Group>
+        {i && (
+          <>
+            <Divider label="Mantenimiento" labelPosition="left" mt="sm" />
+            <Text size="sm" c="dimmed">
+              {props.uso === 0
+                ? 'Ninguna acción usa este indicador.'
+                : `Lo ${props.uso === 1 ? 'usa 1 acción' : `usan ${props.uso} acciones`} de los planes.`}
+            </Text>
+            <Group align="flex-end" gap="xs">
+              <TextInput
+                label="Cambiar código o fusionar"
+                description="Si el código nuevo ya existe, ambos indicadores se fusionan en él"
+                placeholder="Código nuevo"
+                value={nuevoCodigo}
+                onChange={(e) => setNuevoCodigo(e.currentTarget.value.toUpperCase().trim())}
+                style={{ flex: 1 }}
+              />
+              <Button
+                variant="light"
+                leftSection={<IconArrowsExchange size={16} />}
+                disabled={!/^[A-Z0-9]+$/.test(nuevoCodigo) || nuevoCodigo === i.codigo}
+                onClick={() => cambiarCodigo(i, nuevoCodigo)}
+              >
+                Aplicar
+              </Button>
+            </Group>
+            {props.uso === 0 ? (
+              <Button variant="subtle" color="red" leftSection={<IconTrash size={16} />} w="fit-content" onClick={() => borrar(i)}>
+                Borrar indicador
+              </Button>
+            ) : (
+              <Text size="xs" c="dimmed">
+                Un indicador en uso no se puede borrar; si deja de ser útil, desactívalo (las acciones lo conservan).
+              </Text>
+            )}
+          </>
+        )}
       </Stack>
     </form>
   )

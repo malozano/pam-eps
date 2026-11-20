@@ -142,7 +142,7 @@ export function FichaAccion() {
               {fechaCorta(a.fecha_inicio)} – {fechaCorta(a.fecha_fin)}
             </Dato>
             <Dato etiqueta={a.indicadores.length > 1 ? 'Indicadores' : 'Indicador'}>
-              <ListaIndicadores indicadores={a.indicadores} />
+              <ListaIndicadores indicadores={a.indicadores} marcarInactivos />
             </Dato>
             <Dato etiqueta="Origen">{a.origen ?? '—'}</Dato>
             {a.presupuesto !== null && (

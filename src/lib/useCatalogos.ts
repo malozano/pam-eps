@@ -79,3 +79,15 @@ export function useCatalogoIndicadores() {
     },
   })
 }
+
+/** Número de acciones (de todos los planes) que usan cada indicador del catálogo. */
+export function useUsoIndicadores() {
+  return useQuery({
+    queryKey: ['uso_indicadores'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('uso_indicadores')
+      if (error) throw error
+      return new Map((data as { codigo: string; acciones: number }[]).map((r) => [r.codigo, Number(r.acciones)]))
+    },
+  })
+}

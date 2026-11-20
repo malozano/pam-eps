@@ -98,6 +98,20 @@ npm test          # pruebas unitarias (Vitest)
 npm run test:db   # migraciones + pruebas de código automático, historial y RLS
 ```
 
+## Mantenimiento del catálogo de indicadores
+
+Desde la página «Indicadores» (administración):
+
+- **Alta, edición y desactivación** de indicadores uno a uno. Los desactivados no se ofrecen al
+  elegir, pero las acciones que ya los usan los conservan (se muestran «en desuso»).
+- **Borrado** solo de indicadores que no usa ninguna acción (la base de datos lo impide si están en uso).
+- **Cambiar código o fusionar**: actualiza todas las acciones que usan el código. Si el código nuevo
+  ya existe, los dos indicadores se fusionan.
+- **Nueva versión del documento de indicadores**: «Exportar catálogo» → editar el Excel →
+  «Actualizar desde Excel». Vista previa de nuevos, modificados, filas con errores e indicadores
+  que ya no están (opcionalmente se desactivan). Los procedimientos nuevos se crean con
+  «PC09 · Nombre» en la columna de procedimiento.
+
 ## URL públicas
 
 - Índice de planes: `https://<usuario>.github.io/pam-eps/plan`
