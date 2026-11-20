@@ -1,6 +1,8 @@
 import { AppShell, Burger, Group, Menu, NavLink, Select, Text, UnstyledButton } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
-import { IconChevronDown, IconHome, IconLogout, IconUser, IconUsers } from '@tabler/icons-react'
+import {
+  IconChevronDown, IconExternalLink, IconHome, IconLogout, IconUser, IconUsers, IconWorld,
+} from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
@@ -65,6 +67,15 @@ export function Layout() {
       <AppShell.Navbar p="xs">
         {enlace('/', t('nav.inicio'), <IconHome size={18} />)}
         {esAdmin && enlace('/admin/usuarios', t('nav.usuarios'), <IconUsers size={18} />)}
+        <NavLink
+          component="a"
+          href={`${import.meta.env.BASE_URL}plan`}
+          target="_blank"
+          rel="noopener"
+          label={t('publico.planes')}
+          leftSection={<IconWorld size={18} />}
+          rightSection={<IconExternalLink size={14} />}
+        />
       </AppShell.Navbar>
       <AppShell.Main>
         <Outlet />

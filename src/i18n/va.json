@@ -1,6 +1,45 @@
 {
-  "app": { "titulo": "Plans d'accions de millora", "centro": "Escola Politècnica Superior" },
-  "nav": { "inicio": "Inici", "usuarios": "Usuaris", "perfil": "El meu compte", "salir": "Tanca la sessió" },
-  "estado": { "pendiente": "Pendent", "en_proceso": "En procés", "completada": "Completada", "cancelada": "Cancel·lada" },
-  "noEncontrada": "Pàgina no trobada"
+  "app": {
+    "titulo": "Plans d'accions de millora",
+    "centro": "Escola Politècnica Superior"
+  },
+  "nav": {
+    "inicio": "Inici",
+    "usuarios": "Usuaris",
+    "perfil": "El meu compte",
+    "salir": "Tanca la sessió"
+  },
+  "estado": {
+    "pendiente": "Pendent",
+    "en_proceso": "En procés",
+    "completada": "Completada",
+    "cancelada": "Cancel·lada"
+  },
+  "noEncontrada": "Pàgina no trobada",
+  "publico": {
+    "titulo": "Pla d'accions de millora",
+    "curso": "Curs",
+    "cursoEtiqueta": "Curs {{curso}}",
+    "exportar": "Descarrega l'Excel",
+    "propuestas": "Accions proposades per al curs {{curso}}",
+    "anteriores": "Accions de cursos anteriors pendents o en procés",
+    "ninguna": "No hi ha accions de millora en aquest pla per al curs {{curso}}.",
+    "noExiste": "No existeix el pla sol·licitat.",
+    "tareas": "Tasques",
+    "responsable": "Responsable",
+    "fechas": "Dates",
+    "indicador": "Indicador",
+    "origen": "Origen",
+    "presupuesto": "Pressupost",
+    "observaciones": "Observacions",
+    "resumen": "{{total}} accions",
+    "planes": "Plans d'accions de millora",
+    "planesIntro": "Plans d'accions de millora de les titulacions de l'Escola Politècnica Superior i pla d'accions transversals del centre.",
+    "centro": "Pla del centre",
+    "grados": "Graus",
+    "masteres": "Màsters",
+    "todosLosPlanes": "Tots els plans",
+    "nota": "Inclou les accions de millora proposades per al curs i les de cursos anteriors que continuen pendents o en procés.",
+    "contenidoCastellano": "El contingut de les accions es mostra en castellà."
+  }
 }

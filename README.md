@@ -17,7 +17,7 @@ de la Escuela Politécnica Superior (y el plan transversal del centro, código `
 | 2 | Importación de Excel con vista previa (atómica, detecta errores y códigos antiguos) | ✅ |
 | 3 | Gestión de acciones (listado con filtros, alta con código automático, edición, borrado) y avisos de plazos en el inicio | ✅ |
 | 4 | Seguimiento: ficha con historial, cambios de estado con observaciones/evidencias/fechas, informe CEN19 y cierre de acciones reportadas | ✅ |
-| 5 | Vista pública por titulación/curso y exportación a Excel | ⏳ |
+| 5 | Vista pública por titulación/curso (`/plan/<código>/<año>`, castellano/valenciano) y exportación a Excel (formato común, reimportable) | ✅ |
 | 6 | Piloto | ⏳ |
 
 ## Modelo de datos
@@ -92,6 +92,14 @@ Pruebas:
 npm test          # pruebas unitarias (Vitest)
 npm run test:db   # migraciones + pruebas de código automático, historial y RLS
 ```
+
+## URL públicas
+
+- Índice de planes: `https://<usuario>.github.io/pam-eps/plan`
+- Plan de una titulación para un curso: `…/plan/D110/2026` (curso 2026-27). Sin año, el curso actual.
+
+Muestran solo acciones marcadas como «acción de mejora»: las del curso indicado más las de
+cursos anteriores que siguen pendientes o en proceso. No requieren iniciar sesión.
 
 ## Idiomas
 

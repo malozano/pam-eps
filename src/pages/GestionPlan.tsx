@@ -1,9 +1,13 @@
 import {
-  ActionIcon, Alert, Anchor, Badge, Button, Chip, Group, Paper, Select, Skeleton, Stack, Switch, Table, Text,
+  ActionIcon, Alert, Anchor, Badge, Button, Chip, Group, Menu, Paper, Select, Skeleton, Stack, Switch, Table, Text,
   TextInput, Title, Tooltip,
 } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
-import { IconFileImport, IconPencil, IconPlus, IconReportAnalytics, IconSearch } from '@tabler/icons-react'
+import { notifications } from '@mantine/notifications'
+import {
+  IconChevronDown, IconExternalLink, IconFileExport, IconFileImport, IconFileSpreadsheet, IconPencil, IconPlus,
+  IconReportAnalytics, IconSearch,
+} from '@tabler/icons-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -15,7 +19,8 @@ import { fechaCorta } from '../lib/formato'
 import { normalizar } from '../lib/importacion'
 import { enPlanDelCurso } from '../lib/seguimiento'
 import { ESTADOS, type EstadoAccion } from '../lib/tipos'
-import { useAccionesTitulacion } from '../lib/useCatalogos'
+import { descargar, generarExcel, nombreFichero } from '../lib/exportacion'
+import { useAccionesTitulacion, useResponsables } from '../lib/useCatalogos'
 import { useTitulaciones } from '../lib/useTitulaciones'
 
 /**
@@ -29,6 +34,10 @@ export function GestionPlan() {
   const { esAdmin, titulaciones } = useAuth()
   const { data: tits } = useTitulaciones()
   const { data: acciones = [], isLoading, error } = useAccionesTitulacion(codigo)
+  const tipoPlan = tits?.find((x) => x.codigo === codigo)?.tipo
+  const { data: responsables = [] } = useResponsables(
+    tipoPlan === undefined ? undefined : tipoPlan === 'centro' ? 'centro' : 'titulacion',
+  )
   const [params, setParams] = useSearchParams()
   const [verCerradas, setVerCerradas] = useState(false)
   const movil = useMediaQuery('(max-width: 48em)')
@@ -70,6 +79,19 @@ export function GestionPlan() {
 
   if (!esAdmin && !titulaciones.includes(codigo)) return <Navigate to="/" replace />
   const tit = tits?.find((x) => x.codigo === codigo)
+  const urlPublica = `${window.location.origin}${import.meta.env.BASE_URL}plan/${codigo}${curso !== 'todos' ? `/${curso}` : ''}`
+
+  async function exportar() {
+    try {
+      const anyo = curso === 'todos' ? null : Number(curso)
+      const buf = await generarExcel(filtradas, {
+        titulacion: codigo, nombreTitulacion: tit?.nombre ?? codigo, anyo, responsables,
+      })
+      descargar(buf, nombreFichero(codigo, anyo))
+    } catch (e) {
+      notifications.show({ color: 'red', title: 'No se ha podido exportar', message: String(e) })
+    }
+  }
   const ocultasCerradas = curso === 'todos' && !verCerradas ? acciones.filter((a) => a.cerrada).length : 0
 
   return (
@@ -83,9 +105,25 @@ export function GestionPlan() {
           <Title order={2}>{tit?.nombre ?? codigo}</Title>
         </div>
         <Group gap="xs">
-          <Button component={Link} to={`/gestion/${codigo}/importar`} variant="default" leftSection={<IconFileImport size={16} />}>
-            Importar Excel
-          </Button>
+          <Menu position="bottom-end">
+            <Menu.Target>
+              <Button variant="default" leftSection={<IconFileSpreadsheet size={16} />} rightSection={<IconChevronDown size={14} />}>
+                Excel y publicación
+              </Button>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item leftSection={<IconFileExport size={16} />} onClick={exportar} disabled={!filtradas.length}>
+                Exportar a Excel ({filtradas.length} {filtradas.length === 1 ? 'acción' : 'acciones'} mostradas)
+              </Menu.Item>
+              <Menu.Item leftSection={<IconFileImport size={16} />} component={Link} to={`/gestion/${codigo}/importar`}>
+                Importar desde Excel
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Item leftSection={<IconExternalLink size={16} />} component="a" href={urlPublica} target="_blank" rel="noopener">
+                Ver plan publicado{curso !== 'todos' ? ` ${etiquetaCurso(Number(curso))}` : ''}
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
           <Button component={Link} to={`/gestion/${codigo}/informe`} variant="default" leftSection={<IconReportAnalytics size={16} />}>
             Informe de seguimiento
           </Button>

@@ -1,8 +1,8 @@
-import { Alert, Button, Center, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Anchor, Button, Center, Paper, PasswordInput, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
 
@@ -55,6 +55,9 @@ export function Login() {
             <Text size="xs" c="dimmed">
               {t('login.ayuda')}
             </Text>
+            <Anchor component={Link} to="/plan" size="sm">
+              {t('publico.planes')} →
+            </Anchor>
           </Stack>
         </form>
       </Paper>

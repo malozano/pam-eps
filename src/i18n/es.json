@@ -1,6 +1,14 @@
 {
-  "app": { "titulo": "Planes de acciones de mejora", "centro": "Escuela Politécnica Superior" },
-  "nav": { "inicio": "Inicio", "usuarios": "Usuarios", "perfil": "Mi cuenta", "salir": "Cerrar sesión" },
+  "app": {
+    "titulo": "Planes de acciones de mejora",
+    "centro": "Escuela Politécnica Superior"
+  },
+  "nav": {
+    "inicio": "Inicio",
+    "usuarios": "Usuarios",
+    "perfil": "Mi cuenta",
+    "salir": "Cerrar sesión"
+  },
   "login": {
     "titulo": "Acceso coordinación",
     "email": "Correo electrónico",
@@ -9,8 +17,16 @@
     "error": "Correo o contraseña incorrectos",
     "ayuda": "Las cuentas las crea la persona responsable de calidad del centro."
   },
-  "estado": { "pendiente": "Pendiente", "en_proceso": "En proceso", "completada": "Completada", "cancelada": "Cancelada" },
-  "rol": { "admin": "Administración", "coordinador": "Coordinación" },
+  "estado": {
+    "pendiente": "Pendiente",
+    "en_proceso": "En proceso",
+    "completada": "Completada",
+    "cancelada": "Cancelada"
+  },
+  "rol": {
+    "admin": "Administración",
+    "coordinador": "Coordinación"
+  },
   "inicio": {
     "bienvenida": "Hola, {{nombre}}",
     "misPlanes": "Tus planes de acciones",
@@ -18,12 +34,46 @@
     "todas": "Como administrador tienes acceso a todos los planes."
   },
   "comun": {
-    "guardar": "Guardar", "cancelar": "Cancelar", "borrar": "Borrar", "editar": "Editar", "cargando": "Cargando…",
-    "error": "Se ha producido un error", "guardado": "Cambios guardados", "si": "Sí", "no": "No", "volver": "Volver"
+    "guardar": "Guardar",
+    "cancelar": "Cancelar",
+    "borrar": "Borrar",
+    "editar": "Editar",
+    "cargando": "Cargando…",
+    "error": "Se ha producido un error",
+    "guardado": "Cambios guardados",
+    "si": "Sí",
+    "no": "No",
+    "volver": "Volver"
   },
   "config": {
     "falta": "Falta la configuración de Supabase",
     "detalle": "Copia el fichero .env.example a .env.local y rellena VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY."
   },
-  "noEncontrada": "Página no encontrada"
+  "noEncontrada": "Página no encontrada",
+  "publico": {
+    "titulo": "Plan de acciones de mejora",
+    "curso": "Curso",
+    "cursoEtiqueta": "Curso {{curso}}",
+    "exportar": "Descargar Excel",
+    "propuestas": "Acciones propuestas para el curso {{curso}}",
+    "anteriores": "Acciones de cursos anteriores pendientes o en proceso",
+    "ninguna": "No hay acciones de mejora en este plan para el curso {{curso}}.",
+    "noExiste": "No existe el plan solicitado.",
+    "tareas": "Tareas",
+    "responsable": "Responsable",
+    "fechas": "Fechas",
+    "indicador": "Indicador",
+    "origen": "Origen",
+    "presupuesto": "Presupuesto",
+    "observaciones": "Observaciones",
+    "resumen": "{{total}} acciones",
+    "planes": "Planes de acciones de mejora",
+    "planesIntro": "Planes de acciones de mejora de las titulaciones de la Escuela Politécnica Superior y plan de acciones transversales del centro.",
+    "centro": "Plan del centro",
+    "grados": "Grados",
+    "masteres": "Másteres",
+    "todosLosPlanes": "Todos los planes",
+    "nota": "Incluye las acciones de mejora propuestas para el curso y las de cursos anteriores que siguen pendientes o en proceso.",
+    "contenidoCastellano": "El contenido de las acciones se muestra en castellano."
+  }
 }

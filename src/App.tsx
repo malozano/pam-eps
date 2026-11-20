@@ -11,12 +11,16 @@ import { Inicio } from './pages/Inicio'
 import { Login } from './pages/Login'
 import { NoEncontrada } from './pages/NoEncontrada'
 import { Perfil } from './pages/Perfil'
+import { IndicePlanes, PlanPublico } from './pages/PlanPublico'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      {/* Fase 5: rutas públicas /plan/:titulacion/:anyo */}
+      {/* Rutas públicas (sin iniciar sesión) */}
+      <Route path="/plan" element={<IndicePlanes />} />
+      <Route path="/plan/:codigo" element={<PlanPublico />} />
+      <Route path="/plan/:codigo/:anyo" element={<PlanPublico />} />
       <Route
         element={
           <RequireAuth>
