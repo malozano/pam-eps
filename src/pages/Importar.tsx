@@ -33,7 +33,10 @@ export function Importar() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { data: titulaciones = [] } = useTitulaciones()
-  const { data: responsables = [], isLoading: cargandoResponsables } = useResponsables()
+  const tipo = titulaciones.find((t) => t.codigo === codigo)?.tipo
+  const { data: responsables = [], isPending: cargandoResponsables } = useResponsables(
+    tipo === undefined ? undefined : tipo === 'centro' ? 'centro' : 'titulacion',
+  )
   const { data: existentes = [], isLoading: cargandoExistentes } = useAccionesTitulacion(codigo)
 
   const [fichero, setFichero] = useState<File | null>(null)

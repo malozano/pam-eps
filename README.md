@@ -30,6 +30,8 @@ de la Escuela Politécnica Superior (y el plan transversal del centro, código `
   números de acciones borradas no se reutilizan. Las acciones importadas conservan su
   código original (p. ej. `AM-MUDSDM-2023-01`).
 - `historial`: alta y cambios de estado, con observaciones, evidencias y usuario.
+- `responsables`: catálogo de roles responsables. Cada uno indica si sirve para los planes de
+  titulación (`para_titulaciones`), para el plan del centro (`para_centro`) o para ambos.
 - `plan_publico(titulacion, anyo)`: función pública que devuelve las **acciones de mejora**
   del curso indicado más las de cursos anteriores que sigan *pendientes* o *en proceso*.
 
