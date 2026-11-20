@@ -42,14 +42,15 @@ jobs:
       - name: Pruebas de base de datos antes de desplegar
         run: npm run test:db
 
+      # La CLI v3 trabaja en local por defecto: --remote apunta al proyecto vinculado
       - name: Vincular proyecto
         run: npx supabase link --project-ref "$PROJECT_ID"
 
       - name: Migraciones pendientes
-        run: npx supabase migration list
+        run: npx supabase migration list --remote
 
       - name: Aplicar migraciones
-        run: npx supabase db push
+        run: npx supabase db push --remote
 
       - name: Desplegar Edge Functions
-        run: npx supabase functions deploy admin-usuarios --project-ref "$PROJECT_ID"
+        run: npx supabase functions deploy admin-usuarios --remote="$PROJECT_ID" --use-api
