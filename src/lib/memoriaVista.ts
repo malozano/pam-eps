@@ -20,6 +20,10 @@ function guardar(k: string, v: string) {
   }
 }
 
+/** Última página de la aplicación de gestión visitada (para volver desde los planes públicos) */
+export const ultimaRutaApp = () => leer('app:ultimaRuta')
+export const guardarRutaApp = (ruta: string) => guardar('app:ultimaRuta', ruta)
+
 export const filtrosGuardados = (codigo: string) => leer(clave(codigo, 'filtros'))
 export const guardarFiltros = (codigo: string, query: string) => guardar(clave(codigo, 'filtros'), query)
 export const scrollGuardado = (codigo: string) => Number(leer(clave(codigo, 'scroll')) ?? 0)

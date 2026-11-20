@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { EstadoBadge } from '../components/EstadoBadge'
+import { estaInstalada } from '../components/Pwa'
 import { SituacionBadge } from '../components/SituacionBadge'
 import { anyoPorDefecto, etiquetaCurso } from '../lib/cursos'
 import { fechaCorta } from '../lib/formato'
@@ -146,7 +147,7 @@ export function GestionPlan() {
                 Importar desde Excel
               </Menu.Item>
               <Menu.Divider />
-              <Menu.Item leftSection={<IconExternalLink size={16} />} component="a" href={urlPublica} target="_blank" rel="noopener">
+              <Menu.Item leftSection={<IconExternalLink size={16} />} component="a" href={urlPublica} target={estaInstalada() ? undefined : '_blank'} rel="noopener">
                 Ver plan publicado{curso !== 'todos' ? ` ${etiquetaCurso(Number(curso))}` : ''}
               </Menu.Item>
             </Menu.Dropdown>

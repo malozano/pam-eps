@@ -1,12 +1,15 @@
 import {
-  Alert, Anchor, Badge, Box, Button, Container, Group, Paper, Select, SimpleGrid, Skeleton, Stack, Text, Title,
+  ActionIcon, Alert, Anchor, Badge, Box, Button, Container, Group, Paper, Select, SimpleGrid, Skeleton, Stack, Text, Title,
 } from '@mantine/core'
-import { IconDownload } from '@tabler/icons-react'
+import { useMediaQuery } from '@mantine/hooks'
+import { IconArrowLeft, IconDownload } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '../auth/AuthProvider'
 import { EstadoBadge } from '../components/EstadoBadge'
+import { estaInstalada } from '../components/Pwa'
 import { ListaIndicadores } from '../components/ListaIndicadores'
 import { TextoConEnlaces } from '../components/TextoConEnlaces'
 import { cambiarIdioma, IDIOMAS } from '../i18n'
@@ -15,6 +18,7 @@ import { descargar, generarExcel, nombreFichero } from '../lib/exportacion'
 import { fechaCorta } from '../lib/formato'
 import { supabase } from '../lib/supabase'
 import type { EstadoAccion, Titulacion } from '../lib/tipos'
+import { ultimaRutaApp } from '../lib/memoriaVista'
 import { useResponsables } from '../lib/useCatalogos'
 import { useTitulaciones } from '../lib/useTitulaciones'
 
@@ -41,17 +45,43 @@ function cursosConsultables(): number[] {
   return r
 }
 
+/**
+ * Botón para volver a la aplicación de gestión: solo con sesión iniciada o en la aplicación
+ * instalada (quien llega desde la web de la EPS no ve ningún acceso a la gestión).
+ */
+function VolverALaAplicacion() {
+  const { t } = useTranslation()
+  const { session } = useAuth()
+  const navigate = useNavigate()
+  const movil = useMediaQuery('(max-width: 36em)')
+  if (!session && !estaInstalada()) return null
+  // Vuelve a la última página de gestión visitada (o al inicio)
+  const volver = () => navigate(session ? (ultimaRutaApp() ?? '/') : '/')
+  if (movil)
+    return (
+      <ActionIcon variant="light" size="lg" onClick={volver} aria-label={t('publico.volverApp')} title={t('publico.volverApp')}>
+        <IconArrowLeft size={18} />
+      </ActionIcon>
+    )
+  return (
+    <Button size="xs" variant="light" leftSection={<IconArrowLeft size={14} />} onClick={volver}>
+      {t('publico.volverApp')}
+    </Button>
+  )
+}
+
 function CabeceraPublica({ children }: { children?: ReactNode }) {
   const { t, i18n } = useTranslation()
   return (
     <Box component="header" py="sm" px="md" style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
       <Container size="lg" px={0}>
         <Group justify="space-between" wrap="nowrap">
-          <Anchor component={Link} to="/plan" c="inherit" underline="never">
+          <Anchor component={Link} to="/plan" c="inherit" underline="never" style={{ minWidth: 0 }}>
             <Text size="xs" c="dimmed">{t('app.centro')}</Text>
-            <Text fw={700}>{t('publico.planes')}</Text>
+            <Text fw={700} lh={1.2}>{t('publico.planes')}</Text>
           </Anchor>
           <Group gap="xs" wrap="nowrap">
+            <VolverALaAplicacion />
             {children}
             <Select
               size="xs"

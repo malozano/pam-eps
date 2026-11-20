@@ -3,11 +3,12 @@ import { useDisclosure } from '@mantine/hooks'
 import {
   IconChartBar, IconChevronDown, IconDeviceMobile, IconExternalLink, IconHome, IconLogout, IconUser, IconUsers, IconWorld,
 } from '@tabler/icons-react'
-import { useLayoutEffect } from 'react'
+import { useEffect, useLayoutEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { cambiarIdioma, IDIOMAS } from '../i18n'
+import { guardarRutaApp } from '../lib/memoriaVista'
 import { estaInstalada, InstalarApp } from './Pwa'
 
 export function Layout() {
@@ -15,12 +16,16 @@ export function Layout() {
   const [instalarAbierto, { open: abrirInstalar, close: cerrarInstalar }] = useDisclosure()
   const { t, i18n } = useTranslation()
   const { perfil, esAdmin, salir } = useAuth()
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const navigate = useNavigate()
   // Cada página nueva empieza arriba (el listado del plan restaura después su posición)
   useLayoutEffect(() => {
     window.scrollTo(0, 0)
   }, [pathname])
+  // Se recuerda la última página de gestión para poder volver desde los planes públicos
+  useEffect(() => {
+    guardarRutaApp(pathname + search)
+  }, [pathname, search])
 
   const enlace = (to: string, label: string, icon: React.ReactNode) => (
     <NavLink component={Link} to={to} label={label} leftSection={icon} active={pathname === to} onClick={close} />
@@ -83,11 +88,12 @@ export function Layout() {
         <NavLink
           component="a"
           href={`${import.meta.env.BASE_URL}plan`}
-          target="_blank"
+          // en la aplicación instalada se abre en la misma ventana (con botón para volver)
+          target={estaInstalada() ? undefined : '_blank'}
           rel="noopener"
           label={t('nav.publicos')}
           leftSection={<IconWorld size={18} />}
-          rightSection={<IconExternalLink size={14} />}
+          rightSection={estaInstalada() ? undefined : <IconExternalLink size={14} />}
         />
       </AppShell.Navbar>
       <AppShell.Main>
