@@ -143,6 +143,7 @@ export function EditarAccion() {
     )
 
   const volver = `/gestion/${codigo}`
+  const cancelar = esNueva ? volver : `/gestion/${codigo}/accion/${id}`
 
   async function guardar(v: Valores) {
     setGuardando(true)
@@ -162,9 +163,9 @@ export function EditarAccion() {
       ? await supabase
           .from('acciones')
           .insert({ ...datos, titulacion: codigo, anyo: Number(v.anyo) })
-          .select('codigo')
+          .select('id, codigo')
           .single()
-      : await supabase.from('acciones').update(datos).eq('id', id!).select('codigo').single()
+      : await supabase.from('acciones').update(datos).eq('id', id!).select('id, codigo').single()
     setGuardando(false)
     if (res.error) {
       notifications.show({ color: 'red', title: 'No se ha guardado', message: res.error.message, autoClose: false })
@@ -177,7 +178,7 @@ export function EditarAccion() {
       title: esNueva ? 'Acción creada' : 'Cambios guardados',
       message: esNueva ? `Se le ha asignado el código ${res.data.codigo}` : res.data.codigo,
     })
-    navigate(volver)
+    navigate(`/gestion/${codigo}/accion/${res.data.id}`)
   }
 
   function borrar() {
@@ -214,8 +215,8 @@ export function EditarAccion() {
 
   return (
     <Stack maw={900}>
-      <Anchor component={Link} to={volver} size="sm">
-        ← {tit ? `Plan ${tit.codigo}` : 'Volver al plan'}
+      <Anchor component={Link} to={cancelar} size="sm">
+        ← {esNueva ? (tit ? `Plan ${tit.codigo}` : 'Volver al plan') : `Ficha de ${accion?.codigo ?? 'la acción'}`}
       </Anchor>
       <div>
         <Title order={2}>{esNueva ? 'Nueva acción' : 'Editar acción'}</Title>
@@ -356,7 +357,7 @@ export function EditarAccion() {
               )}
             </div>
             <Group>
-              <Button variant="default" component={Link} to={volver}>
+              <Button variant="default" component={Link} to={cancelar}>
                 Cancelar
               </Button>
               <Button type="submit" loading={guardando}>

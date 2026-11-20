@@ -3,7 +3,7 @@ import {
   TextInput, Title, Tooltip,
 } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
-import { IconFileImport, IconPencil, IconPlus, IconSearch } from '@tabler/icons-react'
+import { IconFileImport, IconPencil, IconPlus, IconReportAnalytics, IconSearch } from '@tabler/icons-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -85,6 +85,9 @@ export function GestionPlan() {
         <Group gap="xs">
           <Button component={Link} to={`/gestion/${codigo}/importar`} variant="default" leftSection={<IconFileImport size={16} />}>
             Importar Excel
+          </Button>
+          <Button component={Link} to={`/gestion/${codigo}/informe`} variant="default" leftSection={<IconReportAnalytics size={16} />}>
+            Informe de seguimiento
           </Button>
           <Button component={Link} to={`/gestion/${codigo}/nueva`} leftSection={<IconPlus size={16} />}>
             Nueva acción
@@ -212,7 +215,7 @@ export function GestionPlan() {
                     <Table.Td miw={130}><EstadoBadge estado={a.estado} /></Table.Td>
                     <Table.Td>
                       <Tooltip label="Editar">
-                        <ActionIcon variant="subtle" component={Link} to={url} aria-label={`Editar ${a.codigo}`} onClick={(e) => e.stopPropagation()}>
+                        <ActionIcon variant="subtle" component={Link} to={`${url}/editar`} aria-label={`Editar ${a.codigo}`} onClick={(e) => e.stopPropagation()}>
                           <IconPencil size={16} />
                         </ActionIcon>
                       </Tooltip>

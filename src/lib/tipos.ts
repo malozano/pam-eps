@@ -46,3 +46,19 @@ export interface Accion {
   created_at: string
   updated_at: string
 }
+
+export type TipoHistorial = 'alta' | 'importacion' | 'estado' | 'seguimiento' | 'cierre'
+
+export interface EntradaHistorial {
+  id: number
+  accion_id: string
+  fecha: string
+  usuario_email: string | null
+  estado_anterior: EstadoAccion | null
+  estado_nuevo: EstadoAccion | null
+  comentario: string | null
+  evidencias: string | null
+  tipo: TipoHistorial
+  fecha_inicio: string | null
+  fecha_fin: string | null
+}

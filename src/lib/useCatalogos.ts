@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from './supabase'
-import type { Accion } from './tipos'
+import type { Accion, EntradaHistorial } from './tipos'
 
 /**
  * Responsables disponibles para un plan. El plan del centro (CEN) tiene su propio catálogo,
@@ -36,6 +36,23 @@ export function useAccionesTitulacion(titulacion: string) {
         .order('numero')
       if (error) throw error
       return data as Accion[]
+    },
+  })
+}
+
+export function useHistorial(accionId: string | undefined) {
+  return useQuery({
+    queryKey: ['historial', accionId],
+    enabled: !!accionId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('historial')
+        .select('*')
+        .eq('accion_id', accionId!)
+        .order('fecha', { ascending: false })
+        .order('id', { ascending: false })
+      if (error) throw error
+      return data as EntradaHistorial[]
     },
   })
 }
