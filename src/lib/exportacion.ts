@@ -147,9 +147,10 @@ export async function generarExcel(acciones: AccionExportable[], op: OpcionesExp
   return (await wb.xlsx.writeBuffer()) as ArrayBuffer
 }
 
-/** Descarga un ArrayBuffer como fichero en el navegador. */
-export function descargar(datos: ArrayBuffer, nombre: string) {
-  const blob = new Blob([datos], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+/** Descarga un ArrayBuffer (Excel) o Blob como fichero en el navegador. */
+export function descargar(datos: ArrayBuffer | Blob, nombre: string) {
+  const blob =
+    datos instanceof Blob ? datos : new Blob([datos], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

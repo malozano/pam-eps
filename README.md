@@ -98,6 +98,21 @@ npm test          # pruebas unitarias (Vitest)
 npm run test:db   # migraciones + pruebas de código automático, historial y RLS
 ```
 
+## Plan en Word para publicar
+
+En cada plan, «Excel y publicación» → «Plan en Word para publicar» genera el documento con la
+plantilla oficial de la UA (`public/plantillas/plan-mejora.docx`):
+
+- Tabla 1: plan del curso (acciones de mejora del curso y de cursos anteriores aún pendientes o en
+  proceso). «Plazo» = fecha de fin.
+- Tabla 2: estado actual de las acciones del plan del curso anterior (las de ese curso y las de
+  cursos previos que seguían abiertas al empezarlo, según el historial). «Evidencias» = observaciones.
+
+La plantilla se prepara a partir del Word oficial con
+`python3 scripts/preparar_plantilla_word.py <plantilla-oficial.docx> public/plantillas/plan-mejora.docx`
+(marca los campos, quita las instrucciones y ajusta anchos y letra de las tablas). Si la UA publica una
+versión nueva de la plantilla, basta con repetirlo.
+
 ## Mantenimiento del catálogo de indicadores
 
 Desde la página «Indicadores» (administración):

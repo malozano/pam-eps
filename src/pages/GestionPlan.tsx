@@ -5,7 +5,7 @@ import {
 import { useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
-  IconChevronDown, IconExternalLink, IconFileExport, IconFileImport, IconFileSpreadsheet, IconPencil, IconPlus,
+  IconChevronDown, IconExternalLink, IconFileExport, IconFileTypeDocx, IconFileImport, IconFileSpreadsheet, IconPencil, IconPlus,
   IconReportAnalytics, IconSearch,
 } from '@tabler/icons-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -22,6 +22,8 @@ import { filtrosGuardados, guardarFiltros, guardarScroll, scrollGuardado } from 
 import { enPlanDelCurso } from '../lib/seguimiento'
 import { ESTADOS, type EstadoAccion } from '../lib/tipos'
 import { descargar, generarExcel, nombreFichero } from '../lib/exportacion'
+import { supabase } from '../lib/supabase'
+import { cargarPlantillaWord, datosPlanWord, generarWord, nombreFicheroWord } from '../lib/word'
 import { useAccionesTitulacion, useResponsables } from '../lib/useCatalogos'
 import { useTitulaciones } from '../lib/useTitulaciones'
 
@@ -120,6 +122,32 @@ export function GestionPlan() {
       notifications.show({ color: 'red', title: 'No se ha podido exportar', message: String(e) })
     }
   }
+  // Plan en Word con la plantilla oficial (para publicar): curso seleccionado o, con «Todas», el actual
+  const anyoWord = curso === 'todos' ? anyoPorDefecto() : Number(curso)
+  async function exportarWord() {
+    if (!tit) return
+    try {
+      // Fecha en que cada acción se completó o canceló (para reconstruir el plan del curso anterior)
+      const { data: hist, error } = await supabase
+        .from('historial')
+        .select('accion_id, fecha')
+        .in('accion_id', acciones.map((a) => a.id))
+        .in('estado_nuevo', ['completada', 'cancelada'])
+        // solo cambios de estado reales (no altas ni importaciones de acciones ya finalizadas)
+        .in('tipo', ['estado', 'seguimiento'])
+      if (error) throw error
+      const finalizadas = new Map<string, string>()
+      for (const h of hist ?? []) {
+        const f = (h.fecha as string).slice(0, 10)
+        if (f > (finalizadas.get(h.accion_id) ?? '')) finalizadas.set(h.accion_id, f)
+      }
+      const blob = await generarWord(await cargarPlantillaWord(), datosPlanWord(acciones, tit, anyoWord, finalizadas))
+      descargar(blob, nombreFicheroWord(codigo, anyoWord))
+    } catch (e) {
+      notifications.show({ color: 'red', title: 'No se ha podido generar el Word', message: e instanceof Error ? e.message : String(e) })
+    }
+  }
+
   const ocultasCerradas = curso === 'todos' && !verCerradas ? acciones.filter((a) => a.cerrada).length : 0
 
   return (
@@ -142,6 +170,9 @@ export function GestionPlan() {
             <Menu.Dropdown>
               <Menu.Item leftSection={<IconFileExport size={16} />} onClick={exportar} disabled={!filtradas.length}>
                 Exportar a Excel ({filtradas.length} {filtradas.length === 1 ? 'acción' : 'acciones'} mostradas)
+              </Menu.Item>
+              <Menu.Item leftSection={<IconFileTypeDocx size={16} />} onClick={exportarWord} disabled={!tit}>
+                Plan en Word para publicar ({etiquetaCurso(anyoWord)})
               </Menu.Item>
               <Menu.Item leftSection={<IconFileImport size={16} />} component={Link} to={`/gestion/${codigo}/importar`}>
                 Importar desde Excel
