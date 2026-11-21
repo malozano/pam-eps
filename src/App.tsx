@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { RequireAuth } from './auth/RequireAuth'
 import { Layout } from './components/Layout'
 import { Avisos } from './pages/admin/Avisos'
+import { Consultas } from './pages/admin/Consultas'
 import { Usuarios } from './pages/admin/Usuarios'
 import { EditarAccion } from './pages/EditarAccion'
 import { FichaAccion } from './pages/FichaAccion'
@@ -41,6 +42,14 @@ export default function App() {
         <Route path="perfil" element={<Perfil />} />
         <Route path="indicadores" element={<Indicadores />} />
         <Route path="indicadores/actualizar" element={<ActualizarCatalogo />} />
+        <Route
+          path="admin/consultas"
+          element={
+            <RequireAuth admin>
+              <Consultas />
+            </RequireAuth>
+          }
+        />
         <Route
           path="admin/avisos"
           element={

@@ -19,6 +19,7 @@ de la Escuela Politécnica Superior (y el plan transversal del centro, código `
 | 4 | Seguimiento: ficha con historial, cambios de estado con observaciones/evidencias/fechas, informe CEN19 y cierre de acciones reportadas | ✅ |
 | 5 | Vista pública por titulación/curso (`/plan/<código>/<año>`, castellano/valenciano) y exportación a Excel (formato común, reimportable) | ✅ |
 | 5b | Catálogo de indicadores (79 con código, por procedimiento), varios indicadores por acción, página de consulta y mantenimiento | ✅ |
+| 5c | Consultas (administración): pendientes por responsable con listados para copiar, consulta con filtros y estadísticas | ✅ |
 | 6 | Piloto | ⏳ |
 
 ## Modelo de datos
@@ -142,6 +143,23 @@ Desde la página «Indicadores» (administración):
   «Actualizar desde Excel». Vista previa de nuevos, modificados, filas con errores e indicadores
   que ya no están (opcionalmente se desactivan). Los procedimientos nuevos se crean con
   «PC09 · Nombre» en la columna de procedimiento.
+
+## Consultas (administración)
+
+Sección «Consultas» del menú, solo para el administrador, con tres pestañas:
+
+- **Pendientes por responsable**: acciones abiertas (pendientes o en proceso) agrupadas por rol
+  responsable, con las de plazo vencido primero y destacadas. Por defecto muestra el plan del
+  centro; se pueden elegir otros planes o todos (entonces se agrupa por plan y responsable).
+  «Copiar listado» copia un texto listo para pegar en un correo (código, nombre, estado, plazo,
+  última situación registrada y enlace a la ficha); los cambios que respondan se registran
+  después desde la ficha de cada acción.
+- **Consulta**: todas las acciones con filtros (titulación, curso, responsable, estado, situación
+  del plazo, rango de fechas, texto, solo de mejora, cerradas), ordenación por columna,
+  agrupación y exportación a Excel del resultado.
+- **Estadísticas**: estado del plan del curso por titulación, acciones por responsable (con el
+  porcentaje de acciones de titulación a cargo de «Coordinación titulación»), acciones por
+  titulación y curso, y evolución por curso.
 
 ## URL públicas
 
