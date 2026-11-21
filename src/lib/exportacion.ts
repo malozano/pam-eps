@@ -77,7 +77,7 @@ export function nombreFichero(titulacion: string, anyo: number | null, publico =
 export async function generarExcel(acciones: AccionExportable[], op: OpcionesExportacion): Promise<ArrayBuffer> {
   const { default: ExcelJS } = await import('exceljs')
   const wb = new ExcelJS.Workbook()
-  wb.creator = 'Planes de acciones de mejora · EPS'
+  wb.creator = 'Seguimiento Calidad EPS'
   wb.created = new Date()
   const columnas = COLUMNAS.filter((c) => !(op.publico && c.interna))
 

@@ -54,7 +54,7 @@ export function Layout() {
           <Group gap="sm" wrap="nowrap">
             <Burger opened={abierto} onClick={toggle} hiddenFrom="sm" size="sm" aria-label="Menú" />
             <Text fw={700} truncate>
-              {t('app.titulo')} · EPS
+              {t('app.titulo')}
             </Text>
           </Group>
           <Group gap="xs" wrap="nowrap">

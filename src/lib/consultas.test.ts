@@ -18,7 +18,7 @@ const a = (titulacion: string, anyo: number, extra: Partial<Accion> = {}): Accio
 }
 
 const acciones = [
-  a('CEN', 2026, { responsable: 'Coordinación calidad', estado: 'en_proceso', fecha_fin: '2026-10-31', observaciones: 'Encuesta\nenviada' }), // vencida
+  a('CEN', 2026, { responsable: 'Coordinación calidad', estado: 'en_proceso', fecha_fin: '2026-10-31', tareas: '- Diseñar encuesta\n- Enviarla', observaciones: 'Encuesta enviada' }), // vencida
   a('CEN', 2026, { responsable: 'Coordinación calidad', fecha_fin: '2027-03-31' }),
   a('CEN', 2026, { responsable: 'Equipo directivo', estado: 'completada' }),
   a('CEN', 2025, { responsable: 'Coordinación movilidad', fecha_fin: '2026-06-30' }), // vencida
@@ -62,7 +62,7 @@ describe('consultas', () => {
     const [g] = pendientesPorResponsable(acciones.filter((x) => x.titulacion === 'CEN'), false, HOY)
     expect(textoListado(g, 'https://x/pam-eps/', HOY)).toBe(
       'Acciones abiertas de Coordinación calidad: 2, 1 con el plazo vencido\n\n' +
-        '• AM-CEN-2026-01. Acción 1\n   Estado: En proceso. PLAZO VENCIDO el 31/10/2026 (hace 20 días).\n   Situación registrada: Encuesta enviada\n   https://x/pam-eps/gestion/CEN/accion/id1\n\n' +
+        '• AM-CEN-2026-01. Acción 1\n   Tareas:\n     - Diseñar encuesta\n     - Enviarla\n   Estado: En proceso. PLAZO VENCIDO el 31/10/2026 (hace 20 días).\n   Observaciones: Encuesta enviada\n   https://x/pam-eps/gestion/CEN/accion/id1\n\n' +
         '• AM-CEN-2026-02. Acción 2\n   Estado: Pendiente. Plazo: 01/09/2026 – 31/03/2027.\n   https://x/pam-eps/gestion/CEN/accion/id2',
     )
   })

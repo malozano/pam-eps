@@ -185,7 +185,7 @@ export function Avisos() {
               <Text size="sm">
                 En Supabase → Edge Functions → Secrets, añade: <Code>SMTP_HOST</Code> (p. ej. smtp.gmail.com),{' '}
                 <Code>SMTP_PORT</Code> = 465, <Code>SMTP_USER</Code> (la cuenta de correo), <Code>SMTP_PASS</Code> (la
-                contraseña de aplicación) y <Code>SMTP_FROM</Code> (p. ej. «Planes de mejora EPS &lt;cuenta@gmail.com&gt;»).
+                contraseña de aplicación) y <Code>SMTP_FROM</Code> (p. ej. «Seguimiento Calidad EPS &lt;cuenta@gmail.com&gt;»).
               </Text>
               <Text size="xs" mt={4}>
                 Deben estar en «Edge Functions → Secrets» (no en «Vault» ni en otras secciones) y con estos nombres

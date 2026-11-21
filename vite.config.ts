@@ -23,8 +23,8 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
       manifest: {
-        name: 'Planes de acciones de mejora · EPS',
-        short_name: 'Planes mejora',
+        name: 'Seguimiento Calidad EPS',
+        short_name: 'Calidad EPS',
         description: 'Gestión de los planes de acciones de mejora de la Escuela Politécnica Superior',
         lang: 'es',
         start_url: base,

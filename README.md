@@ -1,4 +1,4 @@
-# Planes de acciones de mejora · EPS
+# Seguimiento Calidad EPS
 
 Aplicación web para gestionar los planes de acciones de mejora de las titulaciones
 de la Escuela Politécnica Superior (y el plan transversal del centro, código `CEN`).
@@ -151,14 +151,15 @@ Sección «Consultas» del menú, solo para el administrador, con tres pestañas
 - **Pendientes por responsable**: acciones abiertas (pendientes o en proceso) agrupadas por rol
   responsable, con las de plazo vencido primero y destacadas. Por defecto muestra el plan del
   centro; se pueden elegir otros planes o todos (entonces se agrupa por plan y responsable).
-  «Copiar listado» copia un texto listo para pegar en un correo (código, nombre, estado, plazo,
-  última situación registrada y enlace a la ficha); los cambios que respondan se registran
+  «Copiar listado» copia un texto listo para pegar en un correo (código, nombre, tareas, estado,
+  plazo, observaciones y enlace a la ficha); los cambios que respondan se registran
   después desde la ficha de cada acción.
 - **Consulta**: todas las acciones con filtros (titulación, curso, responsable, estado, situación
   del plazo, rango de fechas, texto, solo de mejora, cerradas), ordenación por columna,
   agrupación y exportación a Excel del resultado.
-- **Estadísticas**: estado del plan del curso por titulación, acciones por responsable (con el
-  porcentaje de acciones de titulación a cargo de «Coordinación titulación»), acciones por
+- **Estadísticas**: estado del plan del curso por titulación, acciones por responsable (por
+  defecto solo las del plan del centro, para ver el reparto en el equipo; en los planes de las
+  titulaciones, con el porcentaje a cargo de «Coordinación titulación»), acciones por
   titulación y curso, y evolución por curso.
 
 ## URL públicas

@@ -107,7 +107,7 @@ function cuerpoEmail(m: { title: string; body: string; url: string }, urlApp: st
   const cuerpo = `<!doctype html><html lang="es"><body style="margin:0;padding:24px;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;color:#1a1b1e">
 <table role="presentation" width="100%" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:8px;border:1px solid #e3e5e8">
 <tr><td style="padding:20px 24px;border-bottom:3px solid #4263eb">
-<div style="font-size:12px;color:#6b7280">Escuela Politécnica Superior · Planes de acciones de mejora</div>
+<div style="font-size:12px;color:#6b7280">Escuela Politécnica Superior · Seguimiento Calidad EPS</div>
 <div style="font-size:18px;font-weight:bold;margin-top:4px">${html(m.title)}</div></td></tr>
 <tr><td style="padding:20px 24px;font-size:15px;line-height:1.5">
 <p style="margin:0 0 8px;font-weight:bold">${html(lineas[0] ?? '')}</p>

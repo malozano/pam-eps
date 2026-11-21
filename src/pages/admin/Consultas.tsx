@@ -1,5 +1,5 @@
 import {
-  Alert, Anchor, Badge, Button, Chip, CopyButton, Group, MultiSelect, Paper, Select, SimpleGrid, Skeleton, Stack,
+  Alert, Anchor, Badge, Button, Chip, CopyButton, Group, MultiSelect, Paper, SegmentedControl, Select, SimpleGrid, Skeleton, Stack,
   Switch, Table, Tabs, Text, TextInput, Title, Tooltip, UnstyledButton,
 } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
@@ -332,12 +332,15 @@ function Estadisticas({ acciones: todas }: { acciones: Accion[] }) {
   const { data: tits = [] } = useTitulaciones()
   const [soloMejora, setSoloMejora] = useState(true)
   const [anyo, setAnyo] = useState(anyoPorDefecto())
+  const [ambitoResp, setAmbitoResp] = useState<'centro' | 'titulaciones' | 'todos'>('centro')
   const acciones = soloMejora ? todas.filter((a) => a.es_mejora) : todas
   const orden = (c: string) => tits.findIndex((x) => x.codigo === c)
   const nombre = (c: string) => tits.find((x) => x.codigo === c)?.nombre ?? c
 
   const estado = [...estadoPlanPorTitulacion(acciones, anyo).entries()].sort(([a], [b]) => orden(a) - orden(b))
-  const resp = accionesPorResponsable(acciones)
+  const resp = accionesPorResponsable(
+    ambitoResp === 'todos' ? acciones : acciones.filter((a) => (a.titulacion === 'CEN') === (ambitoResp === 'centro')),
+  )
   const maxResp = Math.max(1, ...resp.map((r) => r.total))
   const deTitulaciones = acciones.filter((a) => a.titulacion !== 'CEN')
   const propias = deTitulaciones.filter((a) => a.responsable === 'Coordinación titulación').length
@@ -390,8 +393,10 @@ function Estadisticas({ acciones: todas }: { acciones: Accion[] }) {
         {!estado.length && <Text size="sm" c="dimmed">No hay acciones en el plan de este curso.</Text>}
       </Bloque>
 
-      <Bloque titulo="Acciones por responsable" ayuda="Todas las acciones de todos los planes, por el rol responsable.">
-        {deTitulaciones.length > 0 && (
+      <Bloque titulo="Acciones por responsable" ayuda="Reparto de las acciones por rol responsable. En el plan del centro cada rol corresponde a una persona o servicio; en los de las titulaciones, el mismo rol lo ocupa una persona distinta en cada titulación.">
+        <SegmentedControl mb="sm" size="xs" value={ambitoResp} onChange={(v) => setAmbitoResp(v as typeof ambitoResp)}
+          data={[{ value: 'centro', label: 'Plan del centro' }, { value: 'titulaciones', label: 'Titulaciones' }, { value: 'todos', label: 'Todos' }]} />
+        {ambitoResp === 'titulaciones' && deTitulaciones.length > 0 && (
           <Alert variant="light" color="blue" mb="sm">
             En los planes de las titulaciones, {propias} de {deTitulaciones.length} acciones ({Math.round((propias / deTitulaciones.length) * 100)} %) tienen como responsable a «Coordinación titulación».
           </Alert>
@@ -405,7 +410,7 @@ function Estadisticas({ acciones: todas }: { acciones: Accion[] }) {
                 <Table.Th ta="right">Total</Table.Th>
                 <Table.Th ta="right">Abiertas</Table.Th>
                 <Table.Th ta="right">Vencidas</Table.Th>
-                <Table.Th ta="right">Planes</Table.Th>
+                {ambitoResp !== 'centro' && <Table.Th ta="right">Planes</Table.Th>}
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -420,7 +425,7 @@ function Estadisticas({ acciones: todas }: { acciones: Accion[] }) {
                   <Table.Td ta="right" fw={600}>{r.total}</Table.Td>
                   <Table.Td ta="right">{r.abiertas || '—'}</Table.Td>
                   <Table.Td ta="right">{r.vencidas ? <Badge color="red" size="sm">{r.vencidas}</Badge> : '—'}</Table.Td>
-                  <Table.Td ta="right">{r.planes}</Table.Td>
+                  {ambitoResp !== 'centro' && <Table.Td ta="right">{r.planes}</Table.Td>}
                 </Table.Tr>
               ))}
             </Table.Tbody>

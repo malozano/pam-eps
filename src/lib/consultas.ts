@@ -107,8 +107,12 @@ export function textoListado<T extends Accion>(g: GrupoResponsable<T>, urlApp: s
       s === 'vencida' && a.fecha_fin
         ? `PLAZO VENCIDO el ${fechaCorta(a.fecha_fin)} (hace ${-diasHasta(a.fecha_fin, hoy)} días)`
         : `Plazo: ${fechaCorta(a.fecha_inicio)} – ${fechaCorta(a.fecha_fin)}`
-    const obs = a.observaciones?.trim() ? `\n   Situación registrada: ${a.observaciones.trim().replace(/\s*\n\s*/g, ' ')}` : ''
-    return `• ${a.codigo}. ${a.nombre.trim()}\n   Estado: ${ESTADO_TXT[a.estado]}. ${plazo}.${obs}${
+    const bloque = (titulo: string, texto: string | null) => {
+      const l = (texto ?? '').split('\n').map((x) => x.trim()).filter(Boolean)
+      if (!l.length) return ''
+      return l.length === 1 ? `\n   ${titulo}: ${l[0]}` : `\n   ${titulo}:${l.map((x) => `\n     ${x}`).join('')}`
+    }
+    return `• ${a.codigo}. ${a.nombre.trim()}${bloque('Tareas', a.tareas)}\n   Estado: ${ESTADO_TXT[a.estado]}. ${plazo}.${bloque('Observaciones', a.observaciones)}${
       urlApp ? `\n   ${urlApp}gestion/${a.titulacion}/accion/${a.id}` : ''
     }`
   })
