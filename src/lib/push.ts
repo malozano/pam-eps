@@ -92,18 +92,32 @@ export async function enviarPrueba(): Promise<{ dispositivos: number; enviadas: 
   return data as { dispositivos: number; enviadas: number }
 }
 
-/** Si el envío de avisos por email está configurado en el servidor (secretos SMTP). */
-export async function emailConfigurado(): Promise<boolean> {
-  const { data, error } = await supabase.functions.invoke('enviar-avisos', { body: { modo: 'estado' } })
-  if (error) return false
-  return !!(data as { email?: boolean }).email
+export interface EstadoEmail {
+  email: boolean
+  faltan?: string[]
+  host?: string | null
+  puerto?: number
+  remitente?: string | null
+  /** 'ok' o el mensaje de error al probar la conexión SMTP (solo si se pide verificar) */
+  conexion?: string
+  /** Error al consultar el estado (la función no responde, sin permisos…) */
+  error?: string
+}
+
+async function mensajeError(error: unknown): Promise<string> {
+  const ctx = (error as { context?: Response }).context
+  const detalle = ctx ? await ctx.json().catch(() => null) : null
+  return detalle?.error ?? (error instanceof Error ? error.message : String(error))
+}
+
+/** Estado del envío de avisos por email en el servidor (secretos SMTP). */
+export async function estadoEmail(verificar = false): Promise<EstadoEmail> {
+  const { data, error } = await supabase.functions.invoke('enviar-avisos', { body: { modo: 'estado', verificar } })
+  if (error) return { email: false, error: await mensajeError(error) }
+  return data as EstadoEmail
 }
 
 export async function enviarEmailPrueba(): Promise<void> {
   const { error } = await supabase.functions.invoke('enviar-avisos', { body: { modo: 'prueba', canal: 'email' } })
-  if (error) {
-    const ctx = (error as { context?: Response }).context
-    const detalle = ctx ? await ctx.json().catch(() => null) : null
-    throw new Error(detalle?.error ?? error.message)
-  }
+  if (error) throw new Error(await mensajeError(error))
 }

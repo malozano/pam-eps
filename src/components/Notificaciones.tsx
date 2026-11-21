@@ -5,12 +5,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import {
-  activarPush, desactivarPush, emailConfigurado, enviarEmailPrueba, enviarPrueba, estadoPush, type EstadoPush,
+  activarPush, desactivarPush, enviarEmailPrueba, estadoEmail, enviarPrueba, estadoPush, type EstadoPush,
 } from '../lib/push'
 import { supabase } from '../lib/supabase'
 
-export function useEmailConfigurado() {
-  return useQuery({ queryKey: ['email_configurado'], queryFn: emailConfigurado, staleTime: 5 * 60_000 })
+/** Estado del envío por email; se vuelve a consultar cada vez que se abre la página. */
+export function useEstadoEmail() {
+  return useQuery({ queryKey: ['estado_email'], queryFn: () => estadoEmail(), staleTime: 0, refetchOnMount: 'always' })
 }
 
 export function useEstadoPush() {
@@ -33,7 +34,8 @@ export function Notificaciones() {
   const { data: estado, isLoading } = useEstadoPush()
   const [ocupado, setOcupado] = useState(false)
   const [email, setEmail] = useState(perfil?.avisos_email ?? true)
-  const { data: hayEmail } = useEmailConfigurado()
+  const { data: estadoMail } = useEstadoEmail()
+  const hayEmail = estadoMail?.email
 
   const { data: dispositivos = [] } = useQuery({
     queryKey: ['mis_dispositivos', estado],
@@ -144,9 +146,13 @@ export function Notificaciones() {
             <div>
               <Text fw={500}>Avisos por email</Text>
               <Text size="xs" c="dimmed">
-                {hayEmail === false
-                  ? `${perfil?.email} · el envío por email todavía no está configurado`
-                  : `Se envían a ${perfil?.email}`}
+                {estadoMail === undefined
+                  ? perfil?.email
+                  : estadoMail.error
+                    ? `${perfil?.email} · no se ha podido comprobar el envío por email (${estadoMail.error})`
+                    : !hayEmail
+                      ? `${perfil?.email} · el envío por email todavía no está configurado${estadoMail.faltan?.length ? ` (falta ${estadoMail.faltan.join(', ')})` : ''}`
+                      : `Se envían a ${perfil?.email}`}
               </Text>
             </div>
             <Switch size="md" aria-label="Avisos por email" checked={email} onChange={(e) => cambiarEmail(e.currentTarget.checked)} />

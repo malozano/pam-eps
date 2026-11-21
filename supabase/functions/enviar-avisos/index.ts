@@ -6,7 +6,8 @@
 //   { modo: 'prueba', canal? }  -> notificación (canal 'push', por defecto) o email ('email') de prueba
 //                                  a quien llama
 //   { modo: 'clave' }           -> devuelve la clave pública VAPID (la genera la primera vez)
-//   { modo: 'estado' }          -> indica si el envío por email está configurado
+//   { modo: 'estado', verificar? } -> si el email está configurado (qué variables faltan, por nombre) y,
+//                                  con verificar (solo administración), prueba la conexión SMTP
 //
 // Email: por SMTP con SSL (puerto 465; Supabase bloquea los puertos 25 y 587). Se configura con los
 // secretos de la función SMTP_HOST, SMTP_PORT (465), SMTP_USER, SMTP_PASS y SMTP_FROM
@@ -88,11 +89,12 @@ async function enviar(db: Db, subs: Suscripcion[], mensaje: Record<string, unkno
 // Email
 // ---------------------------------------------------------------------
 function transporteEmail() {
-  const host = Deno.env.get('SMTP_HOST')
-  const user = Deno.env.get('SMTP_USER')
-  const pass = Deno.env.get('SMTP_PASS')
+  const host = Deno.env.get('SMTP_HOST')?.trim()
+  const user = Deno.env.get('SMTP_USER')?.trim()
+  // las contraseñas de aplicación de Google se muestran con espacios: se quitan
+  const pass = Deno.env.get('SMTP_PASS')?.replace(/\s+/g, '')
   if (!host || !user || !pass) return null
-  const port = Number(Deno.env.get('SMTP_PORT') ?? 465)
+  const port = Number(Deno.env.get('SMTP_PORT')?.trim() || 465)
   return nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } })
 }
 const remitente = () => Deno.env.get('SMTP_FROM') ?? `Planes de mejora EPS <${Deno.env.get('SMTP_USER')}>`
@@ -241,8 +243,28 @@ Deno.serve(async (req) => {
         const { publica } = await clavesVapid(db)
         return respuesta({ clave: publica })
       }
-      case 'estado':
-        return respuesta({ email: !!transporteEmail() })
+      case 'estado': {
+        // Diagnóstico: nombres de las variables que faltan (nunca sus valores)
+        const faltan = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'].filter((v) => !Deno.env.get(v)?.trim())
+        const smtp = transporteEmail()
+        const info: Record<string, unknown> = {
+          email: !!smtp,
+          faltan,
+          host: Deno.env.get('SMTP_HOST') ?? null,
+          puerto: Number(Deno.env.get('SMTP_PORT') ?? 465),
+          remitente: smtp ? remitente() : null,
+        }
+        if (body.verificar && smtp) {
+          if (perfil.rol !== 'admin') return respuesta({ error: 'Solo administración' }, 403)
+          try {
+            await smtp.verify()
+            info.conexion = 'ok'
+          } catch (e) {
+            info.conexion = (e as Error).message
+          }
+        }
+        return respuesta(info)
+      }
       case 'prueba': {
         const urlApp = await prepararWebPush(db)
         if (body.canal === 'email') {

@@ -4,7 +4,8 @@ import { notifications } from '@mantine/notifications'
 import { IconPlayerPlay } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
-import { useEmailConfigurado } from '../../components/Notificaciones'
+import { useEstadoEmail } from '../../components/Notificaciones'
+import { estadoEmail } from '../../lib/push'
 import { direccionesAvisos } from '../../lib/avisos'
 import { supabase } from '../../lib/supabase'
 
@@ -24,7 +25,17 @@ export function Avisos() {
   const qc = useQueryClient()
   const [guardando, setGuardando] = useState(false)
   const [ejecutando, setEjecutando] = useState(false)
-  const { data: hayEmail } = useEmailConfigurado()
+  const { data: estadoMail } = useEstadoEmail()
+  const hayEmail = estadoMail?.email
+  const [verificando, setVerificando] = useState(false)
+  const [conexion, setConexion] = useState<string | null>(null)
+  async function comprobarSmtp() {
+    setVerificando(true)
+    setConexion(null)
+    const r = await estadoEmail(true)
+    setVerificando(false)
+    setConexion(r.error ?? r.conexion ?? (r.email ? 'sin respuesta' : 'El envío por email no está configurado'))
+  }
   const { data: ajustes, isLoading } = useQuery({
     queryKey: ['ajustes_avisos'],
     queryFn: async () => {
@@ -141,12 +152,44 @@ export function Avisos() {
             {hayEmail === undefined ? '…' : hayEmail ? <b>configurado</b> : <b>no configurado</b>}. Cada persona puede
             desactivar los avisos por email o las notificaciones push en «Mi cuenta → Notificaciones».
           </Text>
-          {hayEmail === false && (
+          {estadoMail?.error && (
+            <Alert color="red" variant="light" title="No se ha podido comprobar el envío por email">
+              {estadoMail.error}
+            </Alert>
+          )}
+          {hayEmail && (
+            <Text size="xs" c="dimmed">
+              Servidor <Code>{estadoMail?.host}</Code>, puerto <Code>{estadoMail?.puerto}</Code>, remitente{' '}
+              <Code>{estadoMail?.remitente}</Code>
+            </Text>
+          )}
+          {hayEmail && (
+            <Group gap="xs">
+              <Button size="xs" variant="default" onClick={comprobarSmtp} loading={verificando}>
+                Comprobar conexión SMTP
+              </Button>
+              {conexion && (
+                <Text size="sm" c={conexion === 'ok' ? 'green' : 'red'}>
+                  {conexion === 'ok' ? 'Conexión y autenticación correctas' : `Error: ${conexion}`}
+                </Text>
+              )}
+            </Group>
+          )}
+          {hayEmail === false && !estadoMail?.error && (
             <Alert color="yellow" variant="light" title="Configurar el envío por email">
+              {!!estadoMail?.faltan?.length && (
+                <Text size="sm" fw={500} mb={4}>
+                  La función no encuentra: {estadoMail.faltan.join(', ')}.
+                </Text>
+              )}
               <Text size="sm">
                 En Supabase → Edge Functions → Secrets, añade: <Code>SMTP_HOST</Code> (p. ej. smtp.gmail.com),{' '}
                 <Code>SMTP_PORT</Code> = 465, <Code>SMTP_USER</Code> (la cuenta de correo), <Code>SMTP_PASS</Code> (la
                 contraseña de aplicación) y <Code>SMTP_FROM</Code> (p. ej. «Planes de mejora EPS &lt;cuenta@gmail.com&gt;»).
+              </Text>
+              <Text size="xs" mt={4}>
+                Deben estar en «Edge Functions → Secrets» (no en «Vault» ni en otras secciones) y con estos nombres
+                exactos, en mayúsculas. Los cambios se aplican en unos segundos; vuelve a abrir esta página para comprobarlo.
               </Text>
             </Alert>
           )}
