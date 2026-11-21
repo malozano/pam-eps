@@ -333,16 +333,20 @@ function Estadisticas({ acciones: todas }: { acciones: Accion[] }) {
   const [soloMejora, setSoloMejora] = useState(true)
   const [anyo, setAnyo] = useState(anyoPorDefecto())
   const [ambitoResp, setAmbitoResp] = useState<'centro' | 'titulaciones' | 'todos'>('centro')
+  const [cursoResp, setCursoResp] = useState('todos')
   const acciones = soloMejora ? todas.filter((a) => a.es_mejora) : todas
   const orden = (c: string) => tits.findIndex((x) => x.codigo === c)
   const nombre = (c: string) => tits.find((x) => x.codigo === c)?.nombre ?? c
 
   const estado = [...estadoPlanPorTitulacion(acciones, anyo).entries()].sort(([a], [b]) => orden(a) - orden(b))
-  const resp = accionesPorResponsable(
-    ambitoResp === 'todos' ? acciones : acciones.filter((a) => (a.titulacion === 'CEN') === (ambitoResp === 'centro')),
+  const accionesResp = acciones.filter(
+    (a) =>
+      (ambitoResp === 'todos' || (a.titulacion === 'CEN') === (ambitoResp === 'centro')) &&
+      (cursoResp === 'todos' || a.anyo === Number(cursoResp)),
   )
+  const resp = accionesPorResponsable(accionesResp)
   const maxResp = Math.max(1, ...resp.map((r) => r.total))
-  const deTitulaciones = acciones.filter((a) => a.titulacion !== 'CEN')
+  const deTitulaciones = accionesResp.filter((a) => a.titulacion !== 'CEN')
   const propias = deTitulaciones.filter((a) => a.responsable === 'Coordinación titulación').length
   const matriz = accionesPorTitulacionYCurso(acciones)
   const evol = evolucionPorCurso(acciones)
@@ -393,9 +397,14 @@ function Estadisticas({ acciones: todas }: { acciones: Accion[] }) {
         {!estado.length && <Text size="sm" c="dimmed">No hay acciones en el plan de este curso.</Text>}
       </Bloque>
 
-      <Bloque titulo="Acciones por responsable" ayuda="Reparto de las acciones por rol responsable. En el plan del centro cada rol corresponde a una persona o servicio; en los de las titulaciones, el mismo rol lo ocupa una persona distinta en cada titulación.">
-        <SegmentedControl mb="sm" size="xs" value={ambitoResp} onChange={(v) => setAmbitoResp(v as typeof ambitoResp)}
+      <Bloque titulo="Acciones por responsable" ayuda="Reparto de las acciones por rol responsable. En el plan del centro cada rol corresponde a una persona o servicio; en los de las titulaciones, el mismo rol lo ocupa una persona distinta en cada titulación. El curso es aquel para el que se propuso la acción.">
+        <Group mb="sm" gap="sm" align="center">
+          <SegmentedControl size="xs" value={ambitoResp} onChange={(v) => setAmbitoResp(v as typeof ambitoResp)}
           data={[{ value: 'centro', label: 'Plan del centro' }, { value: 'titulaciones', label: 'Titulaciones' }, { value: 'todos', label: 'Todos' }]} />
+          <Select size="xs" w={170} allowDeselect={false} aria-label="Curso" value={cursoResp} onChange={(v) => v && setCursoResp(v)}
+            data={[{ value: 'todos', label: 'Todos los cursos' }, ...anyos.map((x) => ({ value: String(x), label: `Curso ${etiquetaCurso(x)}` }))]} />
+        </Group>
+        {resp.length === 0 && <Text size="sm" c="dimmed">No hay acciones con estos criterios.</Text>}
         {ambitoResp === 'titulaciones' && deTitulaciones.length > 0 && (
           <Alert variant="light" color="blue" mb="sm">
             En los planes de las titulaciones, {propias} de {deTitulaciones.length} acciones ({Math.round((propias / deTitulaciones.length) * 100)} %) tienen como responsable a «Coordinación titulación».
