@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { EstadoBadge } from '../components/EstadoBadge'
+import { InformeCen19Panel } from '../components/InformeCen19Panel'
 import { SituacionBadge } from '../components/SituacionBadge'
 import { TextoConEnlaces } from '../components/TextoConEnlaces'
 import { etiquetaCurso } from '../lib/cursos'
@@ -89,6 +90,10 @@ export function InformeSeguimiento() {
         <Title order={2}>Informe de seguimiento</Title>
         <Text c="dimmed">{tit ? `${tit.codigo} · ${tit.nombre}` : codigo}</Text>
       </div>
+      {tit && !isLoading && <InformeCen19Panel titulacion={tit} acciones={acciones} />}
+      <Title order={4} mt="sm">
+        Acciones para el informe
+      </Title>
       <Text size="sm">
         Acciones de mejora todavía no cerradas, agrupadas como en el informe semestral (CEN19). Actualiza antes el
         estado de cada acción con «Registrar seguimiento» desde su ficha. Puedes copiar cada bloque para pegarlo en el

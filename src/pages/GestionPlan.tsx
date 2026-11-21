@@ -22,7 +22,7 @@ import { filtrosGuardados, guardarFiltros, guardarScroll, scrollGuardado } from 
 import { enPlanDelCurso } from '../lib/seguimiento'
 import { ESTADOS, type EstadoAccion } from '../lib/tipos'
 import { descargar, generarExcel, nombreFichero } from '../lib/exportacion'
-import { supabase } from '../lib/supabase'
+import { fechasFinalizacion } from '../lib/historial'
 import { cargarPlantillaWord, datosPlanWord, generarWord, nombreFicheroWord } from '../lib/word'
 import { useAccionesTitulacion, useResponsables } from '../lib/useCatalogos'
 import { useTitulaciones } from '../lib/useTitulaciones'
@@ -128,19 +128,7 @@ export function GestionPlan() {
     if (!tit) return
     try {
       // Fecha en que cada acción se completó o canceló (para reconstruir el plan del curso anterior)
-      const { data: hist, error } = await supabase
-        .from('historial')
-        .select('accion_id, fecha')
-        .in('accion_id', acciones.map((a) => a.id))
-        .in('estado_nuevo', ['completada', 'cancelada'])
-        // solo cambios de estado reales (no altas ni importaciones de acciones ya finalizadas)
-        .in('tipo', ['estado', 'seguimiento'])
-      if (error) throw error
-      const finalizadas = new Map<string, string>()
-      for (const h of hist ?? []) {
-        const f = (h.fecha as string).slice(0, 10)
-        if (f > (finalizadas.get(h.accion_id) ?? '')) finalizadas.set(h.accion_id, f)
-      }
+      const finalizadas = await fechasFinalizacion(acciones.map((a) => a.id))
       const blob = await generarWord(await cargarPlantillaWord(), datosPlanWord(acciones, tit, anyoWord, finalizadas))
       descargar(blob, nombreFicheroWord(codigo, anyoWord))
     } catch (e) {

@@ -113,6 +113,22 @@ La plantilla se prepara a partir del Word oficial con
 (marca los campos, quita las instrucciones y ajusta anchos y letra de las tablas). Si la UA publica una
 versión nueva de la plantilla, basta con repetirlo.
 
+## Informe de seguimiento semestral (CEN19) en Word
+
+En «Informe de seguimiento» de cada plan: curso analizado (por defecto, durante el año N el curso
+(N-1)-N), semestre (hasta mayo, el primero) y, opcionalmente, el Excel de tasas por asignatura
+(exportación «Tasas de Éxito, Rendimiento y No presentados por Asignatura»; se analiza en el navegador
+y no se guarda). Se genera el bloque del semestre con la plantilla de la EPS
+(`public/plantillas/informe-seguimiento.docx`, preparada con `scripts/preparar_plantilla_informe.py`):
+
+- Análisis de indicadores: tablas por curso con éxito y rendimiento de los últimos cursos disponibles
+  (máx. 3), matriculados del curso analizado y medianas; valores destacados por color y borrador de
+  «Aspectos a destacar». «Ambos semestres» y sin semestre van al bloque del segundo; TFG/TFM aparte.
+  Criterios configurables por la administración (tabla `ajustes_informe`).
+- Estado de las acciones del plan del curso: tabla resumen y listas por estado. Aviso de pendientes con
+  la fecha de fin pasada.
+- Acciones propuestas: las ya introducidas para el curso siguiente.
+
 ## Mantenimiento del catálogo de indicadores
 
 Desde la página «Indicadores» (administración):
