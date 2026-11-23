@@ -1,11 +1,11 @@
 import { Alert, Badge, Button, Group, Paper, Stack, Switch, Text, Title } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { IconBell, IconBellOff, IconMail, IconSend } from '@tabler/icons-react'
+import { IconBell, IconBellOff, IconCalendarStats, IconMail, IconSend } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import {
-  activarPush, desactivarPush, enviarEmailPrueba, estadoEmail, enviarPrueba, estadoPush, type EstadoPush,
+  activarPush, desactivarPush, enviarEmailPrueba, enviarMiResumen, estadoEmail, enviarPrueba, estadoPush, type EstadoPush,
 } from '../lib/push'
 import { supabase } from '../lib/supabase'
 
@@ -34,6 +34,7 @@ export function Notificaciones() {
   const { data: estado, isLoading } = useEstadoPush()
   const [ocupado, setOcupado] = useState(false)
   const [email, setEmail] = useState(perfil?.avisos_email ?? true)
+  const [resumen, setResumen] = useState(perfil?.resumen_mensual ?? true)
   const { data: estadoMail } = useEstadoEmail()
   const hayEmail = estadoMail?.email
 
@@ -85,6 +86,28 @@ export function Notificaciones() {
     try {
       await enviarEmailPrueba()
       notifications.show({ color: 'green', message: `Email de prueba enviado a ${perfil?.email}` })
+    } catch (e) {
+      error(e)
+    } finally {
+      setOcupado(false)
+    }
+  }
+
+  async function cambiarResumen(v: boolean) {
+    setResumen(v)
+    const { error: e } = await supabase.rpc('mi_resumen_mensual', { p_activo: v })
+    if (e) error(e)
+  }
+
+  async function miResumen() {
+    setOcupado(true)
+    try {
+      const r = await enviarMiResumen()
+      notifications.show(
+        r.enviado
+          ? { color: 'green', message: `Resumen enviado a ${r.email} (${r.acciones === 1 ? '1 acción abierta' : `${r.acciones} acciones abiertas`})` }
+          : { color: 'blue', message: 'No tienes acciones abiertas: no hay resumen que enviar' },
+      )
     } catch (e) {
       error(e)
     } finally {
@@ -160,6 +183,24 @@ export function Notificaciones() {
           {hayEmail && email && (
             <Button size="xs" variant="default" leftSection={<IconMail size={14} />} onClick={pruebaEmail} loading={ocupado} w="fit-content">
               Enviar email de prueba
+            </Button>
+          )}
+        </Stack>
+
+        <Stack gap="xs">
+          <Group justify="space-between" wrap="nowrap">
+            <div>
+              <Text fw={500}>Resumen mensual por email</Text>
+              <Text size="xs" c="dimmed">
+                A mitad de mes, un correo con tus acciones abiertas por prioridad: vencidas, las que vencen en los
+                próximos 60 días, en curso y las que empiezan más adelante
+              </Text>
+            </div>
+            <Switch size="md" aria-label="Resumen mensual por email" checked={resumen} onChange={(e) => cambiarResumen(e.currentTarget.checked)} />
+          </Group>
+          {hayEmail && (
+            <Button size="xs" variant="default" leftSection={<IconCalendarStats size={14} />} onClick={miResumen} loading={ocupado} w="fit-content">
+              Enviarme ahora mi resumen
             </Button>
           )}
         </Stack>

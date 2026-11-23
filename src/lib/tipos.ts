@@ -21,6 +21,7 @@ export interface Perfil {
   created_at: string
   avisos_push: boolean
   avisos_email: boolean
+  resumen_mensual: boolean
 }
 
 export interface PerfilConTitulaciones extends Perfil {

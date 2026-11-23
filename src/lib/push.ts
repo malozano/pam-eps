@@ -121,3 +121,10 @@ export async function enviarEmailPrueba(): Promise<void> {
   const { error } = await supabase.functions.invoke('enviar-avisos', { body: { modo: 'prueba', canal: 'email' } })
   if (error) throw new Error(await mensajeError(error))
 }
+
+/** Envía ya a quien llama su resumen mensual. Devuelve cuántas acciones incluye (0 = no se envía). */
+export async function enviarMiResumen(): Promise<{ enviado: boolean; acciones: number; email: string }> {
+  const { data, error } = await supabase.functions.invoke('enviar-avisos', { body: { modo: 'resumen' } })
+  if (error) throw new Error(await mensajeError(error))
+  return data as { enviado: boolean; acciones: number; email: string }
+}

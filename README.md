@@ -21,7 +21,7 @@ de la Escuela Politécnica Superior (y el plan transversal del centro, código `
 | 5b | Catálogo de indicadores (79 con código, por procedimiento), varios indicadores por acción, página de consulta y mantenimiento | ✅ |
 | 5c | Consultas (administración): pendientes por responsable con listados para copiar, consulta con filtros y estadísticas | ✅ |
 | 5d | Coordinación transversal: cuentas para las responsabilidades del plan del centro, «Mis acciones», seguimiento con revisión por la administración y recuperación de contraseña | ✅ |
-| 5e | Resumen mensual por correo (a mitad de mes) para cuentas transversales y coordinación de titulación | ⏳ |
+| 5e | Resumen mensual por correo (día configurable, 15 por defecto) y avisos de plazo a las cuentas transversales | ✅ |
 | 6 | Piloto | ⏳ |
 
 ## Modelo de datos
@@ -217,7 +217,19 @@ instrucciones para cada plataforma (en Android/Chrome, instalación directa).
 Cada día (pg_cron, 06:00 UTC) se generan avisos para la coordinación de cada plan (y para la
 administración, del plan del centro): **inicio** de una acción pendiente, **fin próximo** (30 días
 antes por defecto) y **plazo vencido** (1 día después del fin sin completar). Cada aviso se envía
-una sola vez por acción y fecha; los días se configuran en «Avisos» (administración).
+una sola vez por acción y fecha; los días se configuran en «Avisos» (administración). En el plan
+del centro, la cuenta transversal responsable de cada acción también recibe sus avisos de plazo
+(se puede desactivar en «Avisos»).
+
+**Resumen mensual por correo**: el día configurado (15 por defecto; si falla, se reintenta los dos
+días siguientes) cada persona con acciones abiertas recibe un correo con ellas por prioridad: plazo
+vencido, vencen en los próximos 60 días, en curso o que ya deberían haber empezado, y empiezan más
+adelante, con sus tareas y un enlace a cada una. Las cuentas transversales reciben sus acciones del
+plan del centro; la coordinación de cada titulación, su plan; la administración, todo el plan del
+centro separando las acciones **sin cuenta responsable** (las que gestiona ella) de las que tienen
+cuenta. Se envía una vez al mes por persona (tabla `resumenes`). Cada persona puede desactivarlo y
+enviarse el suyo al momento en «Mi cuenta → Notificaciones»; el contenido se genera en
+`supabase/functions/enviar-avisos/resumen.ts` (con pruebas en `src/lib/resumen.test.ts`).
 
 - Envío: Edge Function `enviar-avisos` por **notificación push** (Web Push con claves VAPID que se
   generan solas la primera vez). Cada usuario la activa en «Mi cuenta → Notificaciones» para cada

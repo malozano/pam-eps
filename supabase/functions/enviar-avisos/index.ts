@@ -11,6 +11,10 @@
 //   { modo: 'recuperar', email }   -> sin sesión: envía un enlace para establecer una contraseña nueva
 //                                  (siempre responde lo mismo, exista o no la cuenta)
 //   { modo: 'acceso', id }         -> administración: envía a una cuenta el enlace para establecer su contraseña
+//   { modo: 'resumen' }            -> envía ya a quien llama su resumen mensual (para verlo; no cuenta como enviado)
+//
+// Resumen mensual: la tarea diaria lo envía el día configurado (y los dos siguientes, si falla) a cada
+// persona con acciones abiertas: cuentas transversales, coordinación de titulación y administración.
 //
 // También envía, en cuanto se registran, los avisos de seguimiento de las cuentas transversales a la
 // administración (los lanza registrar_seguimiento mediante lanzar_envio_avisos).
@@ -21,6 +25,7 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@10.6.1'
 import webpush from 'npm:web-push@3.6.7'
+import { bloquesPara, redactarResumen, type AccionR } from './resumen.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -251,9 +256,94 @@ async function procesar(db: Db) {
     }
     if (Object.keys(cambios).length) await db.from('avisos').update(cambios).eq('id', a.id)
   }
-  const resultado = { generados, procesados: avisos.length, notificaciones, emails, email_configurado: !!smtp }
+  const { resumenes } = await enviarResumenes(db)
+  const resultado = { generados, procesados: avisos.length, notificaciones, emails, resumenes, email_configurado: !!smtp }
   await db.from('ajustes_avisos').update({ ultima_ejecucion: new Date().toISOString(), ultimo_resultado: resultado }).eq('id', true)
   return resultado
+}
+
+// ---------------------------------------------------------------------
+// Resumen mensual
+// ---------------------------------------------------------------------
+/** Fecha de hoy en España (aaaa-mm-dd). */
+const hoyEspanya = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())
+
+interface PerfilResumen {
+  id: string
+  email: string
+  nombre: string | null
+  rol: 'admin' | 'coordinador' | 'transversal'
+  activo: boolean
+  resumen_mensual: boolean
+}
+
+/**
+ * Envía los resúmenes mensuales pendientes. Sin `soloPerfil`, solo actúa entre el día configurado y
+ * los dos siguientes y una vez al mes por persona; con `soloPerfil`, envía ya el de esa persona (prueba).
+ */
+async function enviarResumenes(db: Db, soloPerfil?: string) {
+  const hoy = hoyEspanya()
+  const dia = Number(hoy.slice(8, 10))
+  const mes = `${hoy.slice(0, 7)}-01`
+  const { data: aj, error: e0 } = await db.from('ajustes_avisos').select('resumen_activo, resumen_dia, url_app').single()
+  if (e0) throw e0
+  if (!soloPerfil && (!aj.resumen_activo || dia < aj.resumen_dia || dia > aj.resumen_dia + 2)) return { resumenes: 0 }
+  const smtp = transporteEmail()
+  if (!smtp) return { resumenes: 0, error: 'El envío por email no está configurado' }
+  const urlApp = aj.url_app ?? ''
+
+  const [perfiles, pt, resp, acc, tits, hechos] = await Promise.all([
+    db.from('perfiles').select('id, email, nombre, rol, activo, resumen_mensual').eq('activo', true),
+    db.from('perfil_titulacion').select('perfil_id, titulacion'),
+    db.from('responsables').select('nombre, gestor, para_centro'),
+    db.from('acciones')
+      .select('id, codigo, nombre, tareas, titulacion, responsable, estado, fecha_inicio, fecha_fin')
+      .in('estado', ['pendiente', 'en_proceso']),
+    db.from('titulaciones').select('codigo, nombre, activa'),
+    db.from('resumenes').select('perfil_id').eq('mes', mes),
+  ])
+  for (const r of [perfiles, pt, resp, acc, tits, hechos]) if (r.error) throw r.error
+  const todos = perfiles.data as PerfilResumen[]
+  const activas = new Set((tits.data ?? []).filter((t) => t.activa).map((t) => t.codigo as string))
+  const abiertas = (acc.data as AccionR[]).filter((a) => activas.has(a.titulacion))
+  const nombreTit = (c: string) => (tits.data ?? []).find((t) => t.codigo === c)?.nombre ?? c
+  const transversales = new Set(todos.filter((p) => p.rol === 'transversal').map((p) => p.id))
+  const centro = (resp.data ?? []).filter((r) => r.para_centro)
+  const conCuenta = new Set(centro.filter((r) => r.gestor && transversales.has(r.gestor)).map((r) => r.nombre as string))
+  const yaEnviados = new Set((hechos.data ?? []).map((h) => h.perfil_id as string))
+
+  let enviados = 0
+  for (const p of todos) {
+    if (soloPerfil ? p.id !== soloPerfil : !p.resumen_mensual || yaEnviados.has(p.id)) continue
+    const bloques = bloquesPara(
+      {
+        rol: p.rol,
+        titulaciones: (pt.data ?? []).filter((x) => x.perfil_id === p.id).map((x) => x.titulacion as string),
+        responsabilidades: centro.filter((r) => r.gestor === p.id).map((r) => r.nombre as string),
+      },
+      abiertas,
+      conCuenta,
+      nombreTit,
+    )
+    const r = redactarResumen({ nombre: p.nombre, bloques, hoy, urlApp, dia: aj.resumen_dia })
+    if (soloPerfil) {
+      if (!r.total) return { resumenes: 0, acciones: 0 }
+    } else if (!r.total) {
+      // sin acciones abiertas: no se envía nada este mes
+      await db.from('resumenes').insert({ perfil_id: p.id, mes, acciones: 0 })
+      continue
+    }
+    try {
+      await smtp.sendMail({ from: remitente(), to: p.email, subject: r.asunto, text: r.texto, html: r.html })
+    } catch (e) {
+      console.error('Error al enviar el resumen a', p.email, (e as Error).message)
+      continue // se reintentará al día siguiente (dentro del margen)
+    }
+    enviados++
+    if (soloPerfil) return { resumenes: 1, acciones: r.total }
+    await db.from('resumenes').insert({ perfil_id: p.id, mes, acciones: r.total })
+  }
+  return { resumenes: enviados }
 }
 
 /**
@@ -375,6 +465,11 @@ Deno.serve(async (req) => {
         if (!destino.activo) return respuesta({ error: 'La cuenta está desactivada' }, 400)
         const r = await enviarEnlaceAcceso(db, destino.email, true)
         return r === true ? respuesta({ enviado: destino.email }) : respuesta({ error: r }, 400)
+      }
+      case 'resumen': {
+        const r = await enviarResumenes(db, quien.user.id)
+        if (r.error) return respuesta({ error: r.error }, 400)
+        return respuesta({ enviado: r.resumenes > 0, acciones: r.acciones ?? 0, email: quien.user.email })
       }
       case 'ejecutar': {
         if (perfil.rol !== 'admin') return respuesta({ error: 'Solo administración' }, 403)

@@ -1,11 +1,11 @@
 import { Alert, Button, Code, Group, NumberInput, Paper, Skeleton, Stack, Switch, Text, Title } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
-import { IconPlayerPlay } from '@tabler/icons-react'
+import { IconCalendarStats, IconPlayerPlay } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useEstadoEmail } from '../../components/Notificaciones'
-import { estadoEmail } from '../../lib/push'
+import { enviarMiResumen, estadoEmail } from '../../lib/push'
 import { direccionesAvisos } from '../../lib/avisos'
 import { supabase } from '../../lib/supabase'
 
@@ -14,10 +14,13 @@ interface Ajustes {
   dias_antes_inicio: number
   dias_antes_fin: number
   dias_despues_fin: number
+  resumen_activo: boolean
+  resumen_dia: number
+  avisos_plazo_transversal: boolean
   url_app: string | null
   url_funciones: string | null
   ultima_ejecucion: string | null
-  ultimo_resultado: { generados: number; procesados: number; notificaciones: number; emails?: number } | null
+  ultimo_resultado: { generados: number; procesados: number; notificaciones: number; emails?: number; resumenes?: number } | null
 }
 
 /** Ajustes de los avisos de plazos (administración). */
@@ -45,7 +48,10 @@ export function Avisos() {
     },
   })
   const form = useForm({
-    initialValues: { activo: true, dias_antes_inicio: 0, dias_antes_fin: 30, dias_despues_fin: 1 },
+    initialValues: {
+      activo: true, dias_antes_inicio: 0, dias_antes_fin: 30, dias_despues_fin: 1,
+      avisos_plazo_transversal: true, resumen_activo: true, resumen_dia: 15,
+    },
   })
   useEffect(() => {
     if (!ajustes) return
@@ -54,6 +60,9 @@ export function Avisos() {
       dias_antes_inicio: ajustes.dias_antes_inicio,
       dias_antes_fin: ajustes.dias_antes_fin,
       dias_despues_fin: ajustes.dias_despues_fin,
+      avisos_plazo_transversal: ajustes.avisos_plazo_transversal,
+      resumen_activo: ajustes.resumen_activo,
+      resumen_dia: ajustes.resumen_dia,
     }
     form.setValues(v)
     form.resetDirty(v)
@@ -78,9 +87,10 @@ export function Avisos() {
     notifications.show({
       color: 'green',
       title: 'Avisos procesados',
-      message: `${r?.generados} avisos nuevos · ${r?.notificaciones} notificaciones push · ${r?.emails ?? 0} emails`,
+      message: `${r?.generados} avisos nuevos · ${r?.notificaciones} notificaciones push · ${r?.emails ?? 0} emails${r?.resumenes ? ` · ${r.resumenes} resúmenes mensuales` : ''}`,
     })
     qc.invalidateQueries({ queryKey: ['ajustes_avisos'] })
+    qc.invalidateQueries({ queryKey: ['resumenes'] })
   }
 
   if (isLoading || !ajustes) return <Skeleton h={300} />
@@ -94,6 +104,7 @@ export function Avisos() {
           Cada mañana se avisa a la coordinación de cada plan (y a la administración, del plan del centro) de las
           acciones que empiezan, de las que se acercan a su fecha de fin y de las que han vencido sin completarse. Cada
           aviso se envía una sola vez por acción (si se reprograma una fecha, se avisa de nuevo para la nueva fecha).
+          Además, una vez al mes se envía por correo un resumen de las acciones abiertas.
         </Text>
       </div>
       <Paper withBorder p="md">
@@ -124,6 +135,28 @@ export function Avisos() {
               w={360}
               {...form.getInputProps('dias_despues_fin')}
             />
+            <Switch
+              label="Avisar también a las cuentas de coordinación transversal de sus acciones del plan del centro"
+              description="La administración recibe siempre los avisos de todo el plan del centro"
+              {...form.getInputProps('avisos_plazo_transversal', { type: 'checkbox' })}
+            />
+            <Title order={5} mt="sm">Resumen mensual por correo</Title>
+            <Text size="sm" c="dimmed">
+              Un correo con las acciones abiertas por prioridad (vencidas, vencen en los próximos 60 días, en curso,
+              empiezan más adelante). Lo reciben las cuentas transversales (sus acciones), la coordinación de cada
+              titulación (su plan) y la administración (todo el plan del centro, separando las acciones sin cuenta
+              responsable). Cada persona puede desactivarlo en «Mi cuenta → Notificaciones».
+            </Text>
+            <Switch label="Resumen mensual activado" {...form.getInputProps('resumen_activo', { type: 'checkbox' })} />
+            <NumberInput
+              label="Día del mes en que se envía"
+              description="Por defecto el 15, para no coincidir con los plazos de principio y fin de mes. Si ese día falla el envío, se reintenta los dos días siguientes."
+              min={1}
+              max={28}
+              w={360}
+              disabled={!form.values.resumen_activo}
+              {...form.getInputProps('resumen_dia')}
+            />
             <Group>
               <Button type="submit" loading={guardando}>Guardar</Button>
             </Group>
@@ -141,6 +174,7 @@ export function Avisos() {
                 : 'todavía no se ha ejecutado'}
             </b>
             {r && ` · ${r.generados} avisos nuevos, ${r.notificaciones} notificaciones push y ${r.emails ?? 0} emails enviados`}
+            {r?.resumenes ? `, y ${r.resumenes} resúmenes mensuales` : ''}
           </Text>
           {!ajustes.url_funciones && (
             <Alert color="yellow" variant="light">
@@ -193,6 +227,7 @@ export function Avisos() {
               </Text>
             </Alert>
           )}
+          <EstadoResumen activo={ajustes.resumen_activo} dia={ajustes.resumen_dia} />
           <Text size="xs" c="dimmed">
             Destino de la tarea: <Code>{ajustes.url_funciones ?? '—'}</Code>
           </Text>
@@ -202,5 +237,52 @@ export function Avisos() {
         </Stack>
       </Paper>
     </Stack>
+  )
+}
+
+/** Cuántas personas han recibido ya el resumen de este mes, y envío del propio para verlo. */
+function EstadoResumen({ activo, dia }: { activo: boolean; dia: number }) {
+  const [enviando, setEnviando] = useState(false)
+  const hoy = new Date()
+  const mes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`
+  const { data } = useQuery({
+    queryKey: ['resumenes', mes],
+    queryFn: async () => {
+      const { data: filas, error } = await supabase.from('resumenes').select('acciones').eq('mes', mes)
+      if (error) throw error
+      return filas.filter((f) => f.acciones > 0).length
+    },
+  })
+  async function enviar() {
+    setEnviando(true)
+    try {
+      const r = await enviarMiResumen()
+      notifications.show(
+        r.enviado
+          ? { color: 'green', message: `Resumen enviado a ${r.email} (${r.acciones} acciones abiertas)` }
+          : { color: 'blue', message: 'No tienes acciones abiertas: no hay resumen que enviar' },
+      )
+    } catch (e) {
+      notifications.show({ color: 'red', title: 'No se ha podido enviar', message: (e as Error).message })
+    } finally {
+      setEnviando(false)
+    }
+  }
+  const nombreMes = hoy.toLocaleDateString('es-ES', { month: 'long' })
+  return (
+    <Group gap="xs">
+      <Text size="sm">
+        Resumen mensual:{' '}
+        {!activo
+          ? <b>desactivado</b>
+          : data
+            ? <>enviado en {nombreMes} a <b>{data === 1 ? '1 persona' : `${data} personas`}</b></>
+            : <>se enviará el día <b>{dia}</b></>}
+        .
+      </Text>
+      <Button size="xs" variant="default" leftSection={<IconCalendarStats size={14} />} onClick={enviar} loading={enviando}>
+        Enviarme ahora mi resumen
+      </Button>
+    </Group>
   )
 }
