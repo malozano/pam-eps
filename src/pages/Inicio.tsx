@@ -1,21 +1,18 @@
 import {
-  Alert, Badge, Card, Group, SegmentedControl, SimpleGrid, Skeleton, Stack, Table, Text, Title, Tooltip,
+  Alert, Badge, Card, Group, SegmentedControl, SimpleGrid, Skeleton, Stack, Text, Title, Tooltip,
 } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
-import { AvisoRevisionesAdmin, AvisoRevisionInicio, FONDO_POR_REVISAR, MarcaPorRevisar } from '../components/Revision'
+import { ListaAcciones } from '../components/ListaAcciones'
+import { AvisoRevisionesAdmin, AvisoRevisionInicio } from '../components/Revision'
 import { SeguimientosPorRevisar } from '../components/SeguimientosPorRevisar'
 import { SugerenciaNotificaciones } from '../components/SugerenciaNotificaciones'
-import { EstadoBadge } from '../components/EstadoBadge'
-import { SituacionBadge } from '../components/SituacionBadge'
-import { fechaCorta } from '../lib/formato'
-import { ESTADOS_ABIERTOS, situacion, type Situacion } from '../lib/seguimiento'
+import { compararPorUrgencia, ESTADOS_ABIERTOS, situacion, type Situacion } from '../lib/seguimiento'
 import { supabase } from '../lib/supabase'
 import type { Accion } from '../lib/tipos'
-import { usePorRevisar } from '../lib/revision'
 import { useTitulaciones } from '../lib/useTitulaciones'
 import { MisAcciones } from './MisAcciones'
 
@@ -24,7 +21,6 @@ type AccionResumen = Pick<
   'id' | 'codigo' | 'titulacion' | 'nombre' | 'estado' | 'fecha_inicio' | 'fecha_fin' | 'es_mejora'
 >
 
-const PRIORIDAD: Record<Situacion, number> = { vencida: 0, vence_pronto: 1, sin_iniciar: 2, proxima: 3, en_plazo: 4, finalizada: 5 }
 
 /** Acciones abiertas de todos los planes que el usuario puede gestionar (RLS filtra el resto). */
 function useAccionesAbiertas() {
@@ -49,15 +45,10 @@ export function Inicio() {
 
 function InicioGestion() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const { perfil, titulaciones, esAdmin } = useAuth()
   const { data, isLoading } = useTitulaciones()
   const { data: abiertas = [], isLoading: cargandoAcciones } = useAccionesAbiertas()
   const [alcance, setAlcance] = useState<'centro' | 'todos'>('centro')
-  // Acciones pendientes de la revisión del estado en curso (misma marca que en el plan)
-  const revCentro = usePorRevisar(null, 'centro')
-  const revTitulaciones = usePorRevisar(null, 'titulaciones')
-  const porRevisar = (id: string) => revCentro.porRevisar.has(id) || revTitulaciones.porRevisar.has(id)
   const mias = (data ?? []).filter((tit) => tit.activa && (esAdmin || titulaciones.includes(tit.codigo)))
 
   const conSituacion = useMemo(
@@ -78,12 +69,7 @@ function InicioGestion() {
   // El administrador ve por defecto solo las alertas del plan del centro
   const atencion = conSituacion
     .filter((a) => a.situacion !== 'en_plazo' && (!esAdmin || alcance === 'todos' || a.titulacion === 'CEN'))
-    .sort(
-      (a, b) =>
-        PRIORIDAD[a.situacion] - PRIORIDAD[b.situacion] ||
-        (a.fecha_fin ?? '').localeCompare(b.fecha_fin ?? '') ||
-        a.codigo.localeCompare(b.codigo),
-    )
+    .sort((a, b) => compararPorUrgencia(a, b))
 
   return (
     <Stack>
@@ -116,42 +102,7 @@ function InicioGestion() {
             No hay acciones vencidas, que venzan en los próximos 60 días, sin iniciar ni próximas a empezar.
           </Alert>
         ) : (
-          <Table.ScrollContainer minWidth={700}>
-            <Table highlightOnHover verticalSpacing="xs">
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Código</Table.Th>
-                  <Table.Th>Acción</Table.Th>
-                  <Table.Th>Inicio</Table.Th>
-                  <Table.Th>Fin</Table.Th>
-                  <Table.Th>Estado</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {atencion.map((a) => (
-                  <Table.Tr
-                    key={a.id}
-                    style={{ cursor: 'pointer', ...(porRevisar(a.id) ? { background: FONDO_POR_REVISAR } : {}) }}
-                    onClick={() => navigate(`/gestion/${a.titulacion}/accion/${a.id}`)}
-                  >
-                    <Table.Td>
-                      <Text size="sm" ff="monospace" style={{ whiteSpace: 'nowrap' }}>{a.codigo}</Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm" lineClamp={1}>{a.nombre}</Text>
-                      <SituacionBadge accion={a} />
-                    </Table.Td>
-                    <Table.Td style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_inicio)}</Table.Td>
-                    <Table.Td style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_fin)}</Table.Td>
-                    <Table.Td miw={130}>
-                      <EstadoBadge estado={a.estado} />
-                      {porRevisar(a.id) && <MarcaPorRevisar />}
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </Table.ScrollContainer>
+          <ListaAcciones acciones={atencion} minWidth={700} />
         )}
       </Stack>
 

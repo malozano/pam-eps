@@ -12,6 +12,8 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
 import { EstadoBadge } from '../../components/EstadoBadge'
+import { ListaAcciones, usePorRevisarTodas } from '../../components/ListaAcciones'
+import { FONDO_POR_REVISAR, MarcaPorRevisar } from '../../components/Revision'
 import { SituacionBadge } from '../../components/SituacionBadge'
 import {
   accionesPorResponsable, accionesPorTitulacionYCurso, estadoPlanPorTitulacion, ESTADOS_ORDEN, evolucionPorCurso,
@@ -20,7 +22,7 @@ import {
 import { anyoPorDefecto, etiquetaCurso } from '../../lib/cursos'
 import { descargar, generarExcel } from '../../lib/exportacion'
 import { fechaCorta } from '../../lib/formato'
-import { hoyISO, situacion, type Situacion } from '../../lib/seguimiento'
+import { hoyISO, ORDEN_SITUACION, situacion, type Situacion } from '../../lib/seguimiento'
 import { supabase } from '../../lib/supabase'
 import { ESTADOS, type Accion, type EstadoAccion } from '../../lib/tipos'
 import { useTitulaciones } from '../../lib/useTitulaciones'
@@ -64,8 +66,9 @@ function PendientesPorResponsable({ acciones }: { acciones: Accion[] }) {
   return (
     <Stack>
       <Text size="sm" c="dimmed">
-        Acciones abiertas (pendientes o en proceso) agrupadas por responsable, con las de plazo vencido primero. Copia el
-        listado de cada responsable para enviárselo por correo y preguntar por su estado.
+        Acciones abiertas (pendientes o en proceso) agrupadas por responsable, con las más urgentes primero (vencidas,
+        que vencen pronto, que deberían haber empezado…). Copia el listado de cada responsable para enviárselo por correo y
+        preguntar por su estado.
       </Text>
       <Group align="flex-end">
         <MultiSelect
@@ -113,25 +116,7 @@ function PendientesPorResponsable({ acciones }: { acciones: Accion[] }) {
               </CopyButton>
             </Group>
           </Group>
-          <Table.ScrollContainer minWidth={620}>
-            <Table verticalSpacing={4} fz="sm">
-              <Table.Tbody>
-                {g.acciones.map((a) => (
-                  <Table.Tr key={a.id}>
-                    <Table.Td w={150}>
-                      <Anchor component={Link} to={`/gestion/${a.titulacion}/accion/${a.id}`} ff="monospace" size="sm">{a.codigo}</Anchor>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm" lineClamp={2}>{a.nombre}</Text>
-                      <SituacionBadge accion={a} />
-                    </Table.Td>
-                    <Table.Td w={190} style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_inicio)} – {fechaCorta(a.fecha_fin)}</Table.Td>
-                    <Table.Td w={120}><EstadoBadge estado={a.estado} /></Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </Table.ScrollContainer>
+          <ListaAcciones acciones={g.acciones} minWidth={620} />
         </Paper>
       ))}
     </Stack>
@@ -143,7 +128,6 @@ function PendientesPorResponsable({ acciones }: { acciones: Accion[] }) {
 // ---------------------------------------------------------------------------------------------
 type Columna = 'codigo' | 'titulacion' | 'nombre' | 'responsable' | 'fecha_inicio' | 'fecha_fin' | 'estado' | 'situacion'
 type Agrupacion = 'ninguna' | 'titulacion' | 'responsable' | 'estado' | 'anyo'
-const ORDEN_SITUACION: Record<Situacion, number> = { vencida: 0, vence_pronto: 1, sin_iniciar: 2, proxima: 3, en_plazo: 4, finalizada: 5 }
 const SITUACIONES: { value: Situacion; label: string }[] = [
   { value: 'vencida', label: 'Vencida' },
   { value: 'vence_pronto', label: 'Vence pronto (60 días)' },
@@ -159,6 +143,7 @@ function Consulta({ acciones }: { acciones: Accion[] }) {
   const [f, setF] = useState<FiltrosConsulta>(FILTROS_VACIOS)
   const [orden, setOrden] = useState<{ col: Columna; asc: boolean }>({ col: 'fecha_fin', asc: true })
   const [agrupar, setAgrupar] = useState<Agrupacion>('ninguna')
+  const porRevisar = usePorRevisarTodas()
   const set = <K extends keyof FiltrosConsulta>(k: K, v: FiltrosConsulta[K]) => setF((x) => ({ ...x, [k]: v }))
   const hoy = hoyISO()
 
@@ -264,13 +249,16 @@ function Consulta({ acciones }: { acciones: Accion[] }) {
                   </Table.Tr>
                 ) : null,
                 ...lista.map((a) => (
-                  <Table.Tr key={a.id}>
+                  <Table.Tr key={a.id} style={porRevisar(a.id) ? { background: FONDO_POR_REVISAR } : undefined}>
                     <Table.Td><Anchor component={Link} to={`/gestion/${a.titulacion}/accion/${a.id}`} ff="monospace" size="sm">{a.codigo}</Anchor></Table.Td>
                     <Table.Td><Text size="sm" lineClamp={2}>{a.nombre}</Text></Table.Td>
                     <Table.Td>{a.responsable ?? '—'}</Table.Td>
                     <Table.Td style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_inicio)}</Table.Td>
                     <Table.Td style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_fin)}</Table.Td>
-                    <Table.Td><EstadoBadge estado={a.estado} /></Table.Td>
+                    <Table.Td>
+                      <EstadoBadge estado={a.estado} />
+                      {porRevisar(a.id) && <MarcaPorRevisar />}
+                    </Table.Td>
                     <Table.Td><SituacionBadge accion={a} /></Table.Td>
                   </Table.Tr>
                 )),

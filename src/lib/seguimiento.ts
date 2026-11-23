@@ -64,3 +64,21 @@ export function diasHasta(iso: string, hoy: string = hoyISO()): number {
   }
   return Math.round((t(iso) - t(hoy)) / 86400000)
 }
+
+/** Orden de prioridad de las situaciones en todos los listados (lo más urgente primero). */
+export const ORDEN_SITUACION: Record<Situacion, number> = {
+  vencida: 0, vence_pronto: 1, sin_iniciar: 2, proxima: 3, en_plazo: 4, finalizada: 5,
+}
+
+/** Compara dos acciones: situación más urgente primero, después fecha de fin y código. */
+export function compararPorUrgencia(
+  x: Pick<Accion, 'estado' | 'fecha_inicio' | 'fecha_fin' | 'codigo'>,
+  y: Pick<Accion, 'estado' | 'fecha_inicio' | 'fecha_fin' | 'codigo'>,
+  hoy: string = hoyISO(),
+): number {
+  return (
+    ORDEN_SITUACION[situacion(x, hoy)] - ORDEN_SITUACION[situacion(y, hoy)] ||
+    (x.fecha_fin ?? '9999').localeCompare(y.fecha_fin ?? '9999') ||
+    x.codigo.localeCompare(y.codigo)
+  )
+}

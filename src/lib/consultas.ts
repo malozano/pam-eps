@@ -5,7 +5,7 @@
 import { etiquetaCurso } from './cursos'
 import { fechaCorta } from './formato'
 import { normalizar } from './importacion'
-import { diasHasta, enPlanDelCurso, estaAbierta, hoyISO, situacion, type Situacion } from './seguimiento'
+import { compararPorUrgencia, diasHasta, enPlanDelCurso, estaAbierta, hoyISO, situacion, type Situacion } from './seguimiento'
 import type { Accion, EstadoAccion } from './tipos'
 
 // ---------------------------------------------------------------------------------------------
@@ -79,13 +79,8 @@ export function pendientesPorResponsable<T extends Accion>(acciones: T[], porPla
     if (situacion(a, hoy) === 'vencida') g.vencidas++
     grupos.set(clave, g)
   }
-  for (const g of grupos.values())
-    g.acciones.sort(
-      (x, y) =>
-        Number(situacion(y, hoy) === 'vencida') - Number(situacion(x, hoy) === 'vencida') ||
-        (x.fecha_fin ?? '9999').localeCompare(y.fecha_fin ?? '9999') ||
-        x.codigo.localeCompare(y.codigo),
-    )
+  // mismo orden que el resto de listados: situación más urgente, fecha de fin y código
+  for (const g of grupos.values()) g.acciones.sort((x, y) => compararPorUrgencia(x, y, hoy))
   return [...grupos.values()].sort(
     (a, b) =>
       b.vencidas - a.vencidas ||
@@ -106,7 +101,9 @@ export function textoListado<T extends Accion>(g: GrupoResponsable<T>, urlApp: s
     const plazo =
       s === 'vencida' && a.fecha_fin
         ? `PLAZO VENCIDO el ${fechaCorta(a.fecha_fin)} (hace ${-diasHasta(a.fecha_fin, hoy)} días)`
-        : `Plazo: ${fechaCorta(a.fecha_inicio)} – ${fechaCorta(a.fecha_fin)}`
+        : s === 'vence_pronto' && a.fecha_fin
+          ? `VENCE PRONTO: el ${fechaCorta(a.fecha_fin)} (${diasHasta(a.fecha_fin, hoy) === 0 ? 'hoy' : `en ${diasHasta(a.fecha_fin, hoy)} días`})`
+          : `Plazo: ${fechaCorta(a.fecha_inicio)} – ${fechaCorta(a.fecha_fin)}`
     const bloque = (titulo: string, texto: string | null) => {
       const l = (texto ?? '').split('\n').map((x) => x.trim()).filter(Boolean)
       if (!l.length) return ''

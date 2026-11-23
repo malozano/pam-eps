@@ -1,8 +1,7 @@
 import {
-  ActionIcon, Alert, Anchor, Badge, Button, Chip, Group, Menu, Paper, Select, Skeleton, Stack, Switch, Table, Text,
+  ActionIcon, Alert, Anchor, Badge, Button, Chip, Group, Menu, Select, Skeleton, Stack, Switch, Text,
   TextInput, Title, Tooltip,
 } from '@mantine/core'
-import { useMediaQuery } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import {
   IconChevronDown, IconExternalLink, IconFileExport, IconFileTypeDocx, IconFileImport, IconFileSpreadsheet, IconPencil, IconPlus,
@@ -10,14 +9,12 @@ import {
 } from '@tabler/icons-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
-import { EstadoBadge } from '../components/EstadoBadge'
 import { estaInstalada } from '../components/Pwa'
-import { FONDO_POR_REVISAR, MarcaPorRevisar, ProgresoRevision } from '../components/Revision'
-import { SituacionBadge } from '../components/SituacionBadge'
+import { ListaAcciones } from '../components/ListaAcciones'
+import { ProgresoRevision } from '../components/Revision'
 import { anyoPorDefecto, etiquetaCurso } from '../lib/cursos'
-import { fechaCorta } from '../lib/formato'
 import { normalizar } from '../lib/importacion'
 import { filtrosGuardados, guardarFiltros, guardarScroll, scrollGuardado } from '../lib/memoriaVista'
 import { ambitoDe, usePorRevisar } from '../lib/revision'
@@ -37,7 +34,6 @@ import { useTitulaciones } from '../lib/useTitulaciones'
 export function GestionPlan() {
   const { codigo = '' } = useParams()
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const { esAdmin, titulaciones } = useAuth()
   const { data: tits } = useTitulaciones()
   const { data: acciones = [], isLoading, error } = useAccionesTitulacion(codigo)
@@ -46,7 +42,6 @@ export function GestionPlan() {
     tipoPlan === undefined ? undefined : tipoPlan === 'centro' ? 'centro' : 'titulacion',
   )
   const [params, setParams] = useSearchParams()
-  const movil = useMediaQuery('(max-width: 48em)')
 
   // Los filtros viven en el estado de la página (respuesta inmediata) y se copian a la URL.
   // Si se llega sin filtros en la URL (enlace «← Plan», menú…), se recuperan los últimos usados.
@@ -258,96 +253,20 @@ export function GestionPlan() {
         ) : (
           <Alert color="gray">Ninguna acción cumple los filtros.</Alert>
         )
-      ) : movil ? (
-        <Stack gap="xs">
-          {filtradas.map((a) => (
-            <Paper
-              key={a.id}
-              withBorder
-              p="sm"
-              component={Link}
-              to={`/gestion/${codigo}/accion/${a.id}`}
-              opacity={a.cerrada ? 0.6 : 1}
-              bg={rev.porRevisar.has(a.id) ? FONDO_POR_REVISAR : undefined}
-              style={{ color: 'inherit', textDecoration: 'none' }}
-            >
-              <Group justify="space-between" wrap="nowrap" mb={4} align="flex-start">
-                <Text size="sm" ff="monospace">{a.codigo}</Text>
-                <div>
-                  <EstadoBadge estado={a.estado} />
-                  {rev.porRevisar.has(a.id) && <MarcaPorRevisar />}
-                </div>
-              </Group>
-              <Text size="sm" fw={500} lineClamp={3}>{a.nombre}</Text>
-              <Text size="xs" c="dimmed" mt={4}>
-                {fechaCorta(a.fecha_inicio)} – {fechaCorta(a.fecha_fin)} · {a.responsable ?? 'Sin responsable'}
-              </Text>
-              <Group gap={4} mt={4}>
-                <SituacionBadge accion={a} />
-                {!a.es_mejora && <Badge size="xs" variant="outline" color="gray">No es acción de mejora</Badge>}
-                {a.cerrada && <Badge size="xs" variant="outline" color="gray">Cerrada</Badge>}
-              </Group>
-            </Paper>
-          ))}
-        </Stack>
       ) : (
-        <Table.ScrollContainer minWidth={860}>
-          <Table striped highlightOnHover verticalSpacing="xs">
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Código</Table.Th>
-                <Table.Th>Acción</Table.Th>
-                <Table.Th>Responsable</Table.Th>
-                <Table.Th>Inicio</Table.Th>
-                <Table.Th>Fin</Table.Th>
-                <Table.Th>Estado</Table.Th>
-                <Table.Th />
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {filtradas.map((a) => {
-                const url = `/gestion/${codigo}/accion/${a.id}`
-                return (
-                  <Table.Tr
-                    key={a.id}
-                    opacity={a.cerrada ? 0.6 : 1}
-                    style={{ cursor: 'pointer', ...(rev.porRevisar.has(a.id) ? { background: FONDO_POR_REVISAR } : {}) }}
-                    onClick={() => navigate(url)}
-                  >
-                    <Table.Td>
-                      <Text size="sm" ff="monospace" style={{ whiteSpace: 'nowrap' }}>{a.codigo}</Text>
-                      {a.anyo !== Number(curso) && curso !== 'todos' && (
-                        <Text size="xs" c="dimmed">de {etiquetaCurso(a.anyo)}</Text>
-                      )}
-                    </Table.Td>
-                    <Table.Td>
-                      <Text size="sm" lineClamp={2}>{a.nombre}</Text>
-                      <Group gap={4} mt={2}>
-                                <SituacionBadge accion={a} />
-                        {!a.es_mejora && <Badge size="xs" variant="outline" color="gray">No es acción de mejora</Badge>}
-                        {a.cerrada && <Badge size="xs" variant="outline" color="gray">Cerrada</Badge>}
-                      </Group>
-                    </Table.Td>
-                    <Table.Td><Text size="sm">{a.responsable ?? '—'}</Text></Table.Td>
-                    <Table.Td style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_inicio)}</Table.Td>
-                    <Table.Td style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_fin)}</Table.Td>
-                    <Table.Td miw={130}>
-                      <EstadoBadge estado={a.estado} />
-                      {rev.porRevisar.has(a.id) && <MarcaPorRevisar />}
-                    </Table.Td>
-                    <Table.Td>
-                      <Tooltip label="Editar">
-                        <ActionIcon variant="subtle" component={Link} to={`${url}/editar`} aria-label={`Editar ${a.codigo}`} onClick={(e) => e.stopPropagation()}>
-                          <IconPencil size={16} />
-                        </ActionIcon>
-                      </Tooltip>
-                    </Table.Td>
-                  </Table.Tr>
-                )
-              })}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
+        <ListaAcciones
+          acciones={filtradas}
+          verResponsable
+          cursoReferencia={curso !== 'todos' ? Number(curso) : undefined}
+          minWidth={860}
+          extra={(a) => (
+            <Tooltip label="Editar">
+              <ActionIcon variant="subtle" component={Link} to={`/gestion/${codigo}/accion/${a.id}/editar`} aria-label={`Editar ${a.codigo}`}>
+                <IconPencil size={16} />
+              </ActionIcon>
+            </Tooltip>
+          )}
+        />
       )}
       {filtradas.length > 0 && (
         <Text size="sm" c="dimmed">

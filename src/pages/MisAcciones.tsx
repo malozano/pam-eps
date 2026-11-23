@@ -1,52 +1,17 @@
-import { Accordion, Alert, Anchor, Badge, Group, Paper, Skeleton, Stack, Table, Text, Title } from '@mantine/core'
+import { Accordion, Alert, Anchor, Badge, Group, Paper, Skeleton, Stack, Text, Title } from '@mantine/core'
 import { IconExternalLink } from '@tabler/icons-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
-import { EstadoBadge } from '../components/EstadoBadge'
-import { SituacionBadge } from '../components/SituacionBadge'
-import { FONDO_POR_REVISAR, MarcaPorRevisar, ProgresoRevision } from '../components/Revision'
+import { ListaAcciones } from '../components/ListaAcciones'
+import { ProgresoRevision } from '../components/Revision'
 import { SugerenciaNotificaciones } from '../components/SugerenciaNotificaciones'
 import { anyoPorDefecto, etiquetaCurso } from '../lib/cursos'
-import { fechaCorta } from '../lib/formato'
 import { porPrioridad, PRIORIDADES } from '../lib/prioridad'
 import { usePorRevisar } from '../lib/revision'
 import { estaAbierta } from '../lib/seguimiento'
 import type { Accion } from '../lib/tipos'
 import { useAccionesTitulacion } from '../lib/useCatalogos'
-
-function TablaAcciones({ acciones, verResponsable, porRevisar }: { acciones: Accion[]; verResponsable: boolean; porRevisar: Set<string> }) {
-  return (
-    <Table.ScrollContainer minWidth={640}>
-      <Table verticalSpacing={6} fz="sm" highlightOnHover>
-        <Table.Tbody>
-          {acciones.map((a) => (
-            <Table.Tr key={a.id} style={porRevisar.has(a.id) ? { background: FONDO_POR_REVISAR } : undefined}>
-              <Table.Td w={150} style={{ verticalAlign: 'top' }}>
-                <Anchor component={Link} to={`/gestion/CEN/accion/${a.id}`} ff="monospace" size="sm">{a.codigo}</Anchor>
-              </Table.Td>
-              <Table.Td>
-                <Text size="sm" lineClamp={2}>{a.nombre}</Text>
-                <Group gap={4} mt={2}>
-                  <SituacionBadge accion={a} />
-                  {verResponsable && a.responsable && <Badge size="xs" variant="outline" color="gray" tt="none">{a.responsable}</Badge>}
-                </Group>
-              </Table.Td>
-              <Table.Td w={190} style={{ whiteSpace: 'nowrap', verticalAlign: 'top' }}>
-                {fechaCorta(a.fecha_inicio)} – {fechaCorta(a.fecha_fin)}
-              </Table.Td>
-              <Table.Td w={120} style={{ verticalAlign: 'top' }}>
-                <EstadoBadge estado={a.estado} />
-                {porRevisar.has(a.id) && <MarcaPorRevisar />}
-              </Table.Td>
-            </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
-    </Table.ScrollContainer>
-  )
-}
 
 /**
  * Inicio de una cuenta de coordinación transversal: las acciones del plan del centro de sus
@@ -107,7 +72,7 @@ export function MisAcciones() {
                 <Badge color={color}>{grupos[prioridad].length}</Badge>
               </Group>
               <Text size="xs" c="dimmed" mb="xs">{ayuda}</Text>
-              <TablaAcciones acciones={grupos[prioridad]} verResponsable={varias} porRevisar={rev.porRevisar} />
+              <ListaAcciones acciones={grupos[prioridad]} verResponsable={varias} minWidth={640} />
             </Paper>
           ))}
 
@@ -123,7 +88,7 @@ export function MisAcciones() {
                         <Badge variant="light" color="gray">{lista.length}</Badge>
                       </Group>
                     </Accordion.Control>
-                    <Accordion.Panel><TablaAcciones acciones={lista} verResponsable={varias} porRevisar={rev.porRevisar} /></Accordion.Panel>
+                    <Accordion.Panel><ListaAcciones acciones={lista} verResponsable={varias} minWidth={640} /></Accordion.Panel>
                   </Accordion.Item>
                 ))}
               </Accordion>
