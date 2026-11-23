@@ -143,9 +143,10 @@ function PendientesPorResponsable({ acciones }: { acciones: Accion[] }) {
 // ---------------------------------------------------------------------------------------------
 type Columna = 'codigo' | 'titulacion' | 'nombre' | 'responsable' | 'fecha_inicio' | 'fecha_fin' | 'estado' | 'situacion'
 type Agrupacion = 'ninguna' | 'titulacion' | 'responsable' | 'estado' | 'anyo'
-const ORDEN_SITUACION: Record<Situacion, number> = { vencida: 0, sin_iniciar: 1, proxima: 2, en_plazo: 3, finalizada: 4 }
+const ORDEN_SITUACION: Record<Situacion, number> = { vencida: 0, vence_pronto: 1, sin_iniciar: 2, proxima: 3, en_plazo: 4, finalizada: 5 }
 const SITUACIONES: { value: Situacion; label: string }[] = [
   { value: 'vencida', label: 'Vencida' },
+  { value: 'vence_pronto', label: 'Vence pronto (60 días)' },
   { value: 'sin_iniciar', label: 'Debería haber empezado' },
   { value: 'proxima', label: 'Empieza pronto' },
   { value: 'en_plazo', label: 'En plazo' },

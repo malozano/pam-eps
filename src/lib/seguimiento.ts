@@ -20,10 +20,14 @@ export function enPlanDelCurso(a: Pick<Accion, 'anyo' | 'estado'>, anyo: number)
 
 export type Situacion =
   | 'vencida' //       abierta y con la fecha de fin ya pasada
+  | 'vence_pronto' //  abierta y con la fecha de fin en los próximos `diasFin` días (60)
   | 'sin_iniciar' //   pendiente y con la fecha de inicio ya alcanzada
   | 'proxima' //       pendiente y empieza en los próximos `diasAviso` días
   | 'en_plazo' //      abierta y sin nada que destacar
   | 'finalizada' //    completada o cancelada
+
+/** Días antes de la fecha de fin en que una acción abierta se destaca como «Vence pronto». */
+export const DIAS_VENCE_PRONTO = 60
 
 export function hoyISO(d: Date = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -39,9 +43,12 @@ export function situacion(
   a: Pick<Accion, 'estado' | 'fecha_inicio' | 'fecha_fin'>,
   hoy: string = hoyISO(),
   diasAviso = 30,
+  diasFin = DIAS_VENCE_PRONTO,
 ): Situacion {
   if (!estaAbierta(a.estado)) return 'finalizada'
   if (a.fecha_fin && a.fecha_fin < hoy) return 'vencida'
+  // muchas acciones solo tienen fecha de fin: se destacan antes de que venza el plazo
+  if (a.fecha_fin && a.fecha_fin <= sumarDias(hoy, diasFin)) return 'vence_pronto'
   if (a.estado === 'pendiente' && a.fecha_inicio) {
     if (a.fecha_inicio <= hoy) return 'sin_iniciar'
     if (a.fecha_inicio <= sumarDias(hoy, diasAviso)) return 'proxima'

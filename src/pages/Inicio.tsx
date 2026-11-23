@@ -24,7 +24,7 @@ type AccionResumen = Pick<
   'id' | 'codigo' | 'titulacion' | 'nombre' | 'estado' | 'fecha_inicio' | 'fecha_fin' | 'es_mejora'
 >
 
-const PRIORIDAD: Record<Situacion, number> = { vencida: 0, sin_iniciar: 1, proxima: 2, en_plazo: 3, finalizada: 4 }
+const PRIORIDAD: Record<Situacion, number> = { vencida: 0, vence_pronto: 1, sin_iniciar: 2, proxima: 3, en_plazo: 4, finalizada: 5 }
 
 /** Acciones abiertas de todos los planes que el usuario puede gestionar (RLS filtra el resto). */
 function useAccionesAbiertas() {
@@ -67,7 +67,7 @@ function InicioGestion() {
   const contadores = useMemo(() => {
     const m = new Map<string, Record<Situacion | 'en_proceso', number>>()
     for (const a of conSituacion) {
-      const c = m.get(a.titulacion) ?? { vencida: 0, sin_iniciar: 0, proxima: 0, en_plazo: 0, finalizada: 0, en_proceso: 0 }
+      const c = m.get(a.titulacion) ?? { vencida: 0, vence_pronto: 0, sin_iniciar: 0, proxima: 0, en_plazo: 0, finalizada: 0, en_proceso: 0 }
       c[a.situacion]++
       if (a.estado === 'en_proceso') c.en_proceso++
       m.set(a.titulacion, c)
@@ -113,7 +113,7 @@ function InicioGestion() {
           <Skeleton h={80} />
         ) : atencion.length === 0 ? (
           <Alert color="green" variant="light">
-            No hay acciones vencidas, sin iniciar ni próximas a empezar.
+            No hay acciones vencidas, que venzan en los próximos 60 días, sin iniciar ni próximas a empezar.
           </Alert>
         ) : (
           <Table.ScrollContainer minWidth={700}>
@@ -177,9 +177,14 @@ function InicioGestion() {
                         <Badge color="red" variant="filled" size="sm">{c.vencida}</Badge>
                       </Tooltip>
                     )}
+                    {!!c?.vence_pronto && (
+                      <Tooltip label="Vencen en los próximos 60 días">
+                        <Badge color="orange" variant="filled" size="sm">{c.vence_pronto}</Badge>
+                      </Tooltip>
+                    )}
                     {!!c?.sin_iniciar && (
                       <Tooltip label="Deberían haber empezado">
-                        <Badge color="orange" variant="filled" size="sm">{c.sin_iniciar}</Badge>
+                        <Badge color="grape" variant="filled" size="sm">{c.sin_iniciar}</Badge>
                       </Tooltip>
                     )}
                     {!!c?.en_proceso && (

@@ -23,9 +23,14 @@ describe('situacion', () => {
     expect(situacion(a('en_proceso', '2026-01-01', '2026-11-19'), hoy)).toBe('vencida')
     expect(situacion(a('pendiente', '2026-01-01', '2026-11-19'), hoy)).toBe('vencida')
   })
-  it('el último día no está vencida', () => expect(situacion(a('en_proceso', '2026-01-01', '2026-11-20'), hoy)).toBe('en_plazo'))
+  it('el último día no está vencida (vence pronto)', () => expect(situacion(a('en_proceso', '2026-01-01', '2026-11-20'), hoy)).toBe('vence_pronto'))
+  it('vence pronto: fin en los próximos 60 días, tenga o no fecha de inicio', () => {
+    expect(situacion(a('en_proceso', null, '2027-01-19'), hoy)).toBe('vence_pronto')
+    expect(situacion(a('pendiente', null, '2027-01-20'), hoy)).toBe('en_plazo')
+    expect(situacion(a('pendiente', '2026-10-01', '2026-12-15'), hoy)).toBe('vence_pronto') // prioridad sobre «debería haber empezado»
+  })
   it('sin iniciar si es pendiente y ya debía empezar', () =>
-    expect(situacion(a('pendiente', '2026-11-20', '2026-12-31'), hoy)).toBe('sin_iniciar'))
+    expect(situacion(a('pendiente', '2026-11-20', '2027-06-30'), hoy)).toBe('sin_iniciar'))
   it('próxima si empieza en los próximos 30 días', () => {
     expect(situacion(a('pendiente', '2026-12-20', '2027-01-31'), hoy)).toBe('proxima')
     expect(situacion(a('pendiente', '2026-12-21', '2027-01-31'), hoy)).toBe('en_plazo')
