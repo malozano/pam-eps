@@ -15,6 +15,7 @@ import { EstadoBadge } from '../components/EstadoBadge'
 import { IndicadoresInput } from '../components/IndicadoresInput'
 import { OrigenInput } from '../components/OrigenInput'
 import { anyoPorDefecto, anyosSeleccionables, etiquetaCurso } from '../lib/cursos'
+import { componerOrigen, origenPorDefecto } from '../lib/origen'
 import { supabase } from '../lib/supabase'
 import type { Accion } from '../lib/tipos'
 import { useAccionesTitulacion, useResponsables } from '../lib/useCatalogos'
@@ -62,7 +63,8 @@ export function EditarAccion() {
       fecha_inicio: null,
       fecha_fin: null,
       indicadores: [],
-      origen: '',
+      // en una acción nueva se propone el informe que toca según la época del año
+      origen: componerOrigen(origenPorDefecto(new Date(), codigo === 'CEN') ?? { tipo: null, anyo: null, motivo: '' }),
       es_mejora: true,
       presupuesto: '',
       observaciones: '',

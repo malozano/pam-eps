@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { analizarOrigen, componerOrigen, cursoPropuesto } from './origen'
+import { analizarOrigen, componerOrigen, cursoPropuesto, origenPorDefecto } from './origen'
 
 describe('origen', () => {
   it('compone y analiza', () => {
@@ -25,5 +25,16 @@ describe('origen', () => {
     expect(cursoPropuesto('cen10', 2026)).toBe(2025)
     expect(cursoPropuesto('cen19_2', 2026)).toBe(2025)
     expect(cursoPropuesto('cen19_1', 2026)).toBe(2026)
+  })
+  it('origen por defecto según la fecha', () => {
+    const d = (s: string, centro = false) => origenPorDefecto(new Date(s + 'T12:00:00'), centro)
+    expect(d('2026-11-23')).toEqual({ tipo: 'cen10', anyo: 2025, motivo: '' })
+    expect(d('2027-01-15')).toEqual({ tipo: 'cen10', anyo: 2025, motivo: '' })
+    expect(d('2027-02-01')).toEqual({ tipo: 'cen19_1', anyo: 2026, motivo: '' })
+    expect(d('2027-05-31')).toEqual({ tipo: 'cen19_1', anyo: 2026, motivo: '' })
+    expect(d('2027-06-01')).toEqual({ tipo: 'cen19_2', anyo: 2026, motivo: '' })
+    expect(d('2027-10-31')).toEqual({ tipo: 'cen19_2', anyo: 2026, motivo: '' })
+    expect(d('2026-12-10', true)).toEqual({ tipo: 'cen02', anyo: 2025, motivo: '' })
+    expect(d('2027-03-10', true)).toBeNull()
   })
 })

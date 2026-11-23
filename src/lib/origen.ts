@@ -45,3 +45,21 @@ export function analizarOrigen(texto: string | null): Origen {
   if (!m) return { tipo: null, anyo: null, motivo: t }
   return { tipo: INFORMES.find((i) => i.texto === m[1])!.tipo, anyo: Number(m[2]), motivo: m[3] ?? '' }
 }
+
+/**
+ * Informe propuesto para una acción nueva según la fecha (calendario habitual de la EPS):
+ * - noviembre a enero: informe anual del curso anterior (CEN10; en el plan del centro, CEN02)
+ * - febrero a mayo: CEN19 de primer semestre del curso vigente
+ * - junio a octubre: CEN19 de segundo semestre del curso que acaba de terminar
+ * En el plan del centro solo se propone el informe anual (los CEN19 son de titulación).
+ */
+export function origenPorDefecto(hoy: Date, esCentro: boolean): Origen | null {
+  const mes = hoy.getMonth() + 1
+  const anyo = hoy.getFullYear()
+  if (mes >= 11 || mes === 1) {
+    const vigente = mes === 1 ? anyo - 1 : anyo
+    return { tipo: esCentro ? 'cen02' : 'cen10', anyo: vigente - 1, motivo: '' }
+  }
+  if (esCentro) return null
+  return mes <= 5 ? { tipo: 'cen19_1', anyo: anyo - 1, motivo: '' } : { tipo: 'cen19_2', anyo: anyo - 1, motivo: '' }
+}
