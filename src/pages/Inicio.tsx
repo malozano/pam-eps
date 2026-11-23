@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { SeguimientosPorRevisar } from '../components/SeguimientosPorRevisar'
 import { SugerenciaNotificaciones } from '../components/SugerenciaNotificaciones'
 import { EstadoBadge } from '../components/EstadoBadge'
 import { SituacionBadge } from '../components/SituacionBadge'
@@ -14,6 +15,7 @@ import { ESTADOS_ABIERTOS, situacion, type Situacion } from '../lib/seguimiento'
 import { supabase } from '../lib/supabase'
 import type { Accion } from '../lib/tipos'
 import { useTitulaciones } from '../lib/useTitulaciones'
+import { MisAcciones } from './MisAcciones'
 
 type AccionResumen = Pick<
   Accion,
@@ -37,7 +39,13 @@ function useAccionesAbiertas() {
   })
 }
 
+/** Inicio: las cuentas de coordinación transversal ven sus acciones; el resto, sus planes. */
 export function Inicio() {
+  const { esTransversal } = useAuth()
+  return esTransversal ? <MisAcciones /> : <InicioGestion />
+}
+
+function InicioGestion() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { perfil, titulaciones, esAdmin } = useAuth()
@@ -75,6 +83,7 @@ export function Inicio() {
     <Stack>
       <Title order={2}>{t('inicio.bienvenida', { nombre: perfil?.nombre || perfil?.email })}</Title>
       <SugerenciaNotificaciones />
+      {esAdmin && <SeguimientosPorRevisar />}
 
       <Stack gap="xs">
         <Group justify="space-between">

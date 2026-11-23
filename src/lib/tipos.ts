@@ -1,5 +1,5 @@
 export type EstadoAccion = 'pendiente' | 'en_proceso' | 'completada' | 'cancelada'
-export type RolUsuario = 'admin' | 'coordinador'
+export type RolUsuario = 'admin' | 'coordinador' | 'transversal'
 export type TipoTitulacion = 'centro' | 'grado' | 'master'
 
 export const ESTADOS: EstadoAccion[] = ['pendiente', 'en_proceso', 'completada', 'cancelada']
@@ -63,4 +63,7 @@ export interface EntradaHistorial {
   tipo: TipoHistorial
   fecha_inicio: string | null
   fecha_fin: string | null
+  /** Seguimiento registrado por una cuenta transversal (la administración lo revisa) */
+  requiere_revision: boolean
+  revisado: string | null
 }

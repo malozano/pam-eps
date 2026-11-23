@@ -1,11 +1,11 @@
 import {
-  ActionIcon, Badge, Button, Group, Modal, MultiSelect, PasswordInput, Select, Stack, Switch, Table, Text,
+  ActionIcon, Badge, Button, Group, Modal, MultiSelect, PasswordInput, Select, Stack, Switch, Table, Tabs, Text,
   TextInput, Title, Tooltip,
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
-import { IconKey, IconPencil, IconPlus, IconTrash } from '@tabler/icons-react'
+import { IconKey, IconMail, IconPencil, IconPlus, IconTrash, IconUsers, IconUserShield } from '@tabler/icons-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -13,6 +13,7 @@ import { useAuth } from '../../auth/AuthProvider'
 import { supabase } from '../../lib/supabase'
 import type { PerfilConTitulaciones, RolUsuario } from '../../lib/tipos'
 import { useTitulaciones } from '../../lib/useTitulaciones'
+import { asignarResponsabilidades, ResponsablesCentro, useResponsablesCentro, type ResponsableCentro } from './ResponsablesCentro'
 
 async function llamarFuncion(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke('admin-usuarios', { body })
@@ -36,6 +37,7 @@ interface DatosUsuario {
   nombre: string
   rol: RolUsuario
   titulaciones: string[]
+  responsabilidades: string[]
   activo: boolean
   password: string
 }
@@ -45,6 +47,7 @@ export function Usuarios() {
   const { perfil: yo } = useAuth()
   const qc = useQueryClient()
   const { data: titulaciones = [] } = useTitulaciones()
+  const { data: responsables = [] } = useResponsablesCentro()
   const [editando, setEditando] = useState<PerfilConTitulaciones | 'nuevo' | null>(null)
   const [passwordDe, setPasswordDe] = useState<PerfilConTitulaciones | null>(null)
 
@@ -62,11 +65,14 @@ export function Usuarios() {
 
   const guardar = useMutation({
     mutationFn: async (v: DatosUsuario) => {
+      const deCentro = v.rol === 'transversal' ? v.responsabilidades : []
       if (editando === 'nuevo') {
-        await llamarFuncion({ accion: 'crear', ...v })
+        const { id } = await llamarFuncion({ accion: 'crear', ...v, titulaciones: v.rol === 'coordinador' ? v.titulaciones : [] })
+        if (deCentro.length) await asignarResponsabilidades(id, deCentro)
         return
       }
       const id = (editando as PerfilConTitulaciones).id
+      await asignarResponsabilidades(id, deCentro)
       const { error: e1 } = await supabase
         .from('perfiles')
         .update({ nombre: v.nombre || null, rol: v.rol, activo: v.activo })
@@ -74,7 +80,7 @@ export function Usuarios() {
       if (e1) throw e1
       const { error: e2 } = await supabase.from('perfil_titulacion').delete().eq('perfil_id', id)
       if (e2) throw e2
-      if (v.titulaciones.length) {
+      if (v.rol === 'coordinador' && v.titulaciones.length) {
         const { error: e3 } = await supabase
           .from('perfil_titulacion')
           .insert(v.titulaciones.map((tit) => ({ perfil_id: id, titulacion: tit })))
@@ -85,6 +91,7 @@ export function Usuarios() {
       notifications.show({ color: 'green', message: t('comun.guardado') })
       setEditando(null)
       refrescar()
+      qc.invalidateQueries({ queryKey: ['responsables_centro'] })
     },
     onError: error,
   })
@@ -109,78 +116,126 @@ export function Usuarios() {
           .catch(error),
     })
 
+  const enviarAcceso = (u: PerfilConTitulaciones) =>
+    modals.openConfirmModal({
+      title: 'Enviar enlace de acceso',
+      children: (
+        <Text size="sm">
+          Se enviará a <b>{u.email}</b> un correo con un enlace para elegir su contraseña (sirve una vez y caduca en una
+          hora). Úsalo al crear una cuenta o cuando cambie la persona que ocupa el cargo.
+        </Text>
+      ),
+      labels: { confirm: 'Enviar', cancel: t('comun.cancelar') },
+      onConfirm: async () => {
+        const { data, error: e } = await supabase.functions.invoke('enviar-avisos', { body: { modo: 'acceso', id: u.id } })
+        if (e) {
+          const ctx = (e as { context?: Response }).context
+          const detalle = ctx ? await ctx.json().catch(() => null) : null
+          return error(new Error(detalle?.error ?? e.message))
+        }
+        notifications.show({ color: 'green', message: `Enlace enviado a ${data.enviado}` })
+      },
+    })
+
   const opcionesTitulaciones = titulaciones.map((x) => ({ value: x.codigo, label: `${x.codigo} · ${x.nombre}` }))
+  const responsabilidadesDe = (id: string) => responsables.filter((r) => r.gestor === id).map((r) => r.nombre)
 
   return (
     <Stack>
-      <Group justify="space-between">
-        <Title order={2}>{t('nav.usuarios')}</Title>
-        <Button leftSection={<IconPlus size={16} />} onClick={() => setEditando('nuevo')}>
-          Nuevo usuario
-        </Button>
-      </Group>
-      <Table.ScrollContainer minWidth={640}>
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Usuario</Table.Th>
-              <Table.Th>Rol</Table.Th>
-              <Table.Th>Titulaciones</Table.Th>
-              <Table.Th>Activo</Table.Th>
-              <Table.Th />
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {isLoading && (
-              <Table.Tr>
-                <Table.Td colSpan={5}>{t('comun.cargando')}</Table.Td>
-              </Table.Tr>
-            )}
-            {usuarios.map((u) => (
-              <Table.Tr key={u.id} opacity={u.activo ? 1 : 0.5}>
-                <Table.Td>
-                  <Text size="sm" fw={500}>{u.nombre || '—'}</Text>
-                  <Text size="xs" c="dimmed">{u.email}</Text>
-                </Table.Td>
-                <Table.Td>
-                  <Badge color={u.rol === 'admin' ? 'grape' : 'blue'} variant="light">{t(`rol.${u.rol}`)}</Badge>
-                </Table.Td>
-                <Table.Td>
-                  <Group gap={4}>
-                    {u.rol === 'admin' ? (
-                      <Text size="xs" c="dimmed">Todas</Text>
-                    ) : (
-                      u.perfil_titulacion.map((pt) => <Badge key={pt.titulacion} variant="outline" size="sm">{pt.titulacion}</Badge>)
-                    )}
-                  </Group>
-                </Table.Td>
-                <Table.Td>{u.activo ? t('comun.si') : t('comun.no')}</Table.Td>
-                <Table.Td>
-                  <Group gap={4} justify="flex-end" wrap="nowrap">
-                    <Tooltip label={t('comun.editar')}>
-                      <ActionIcon variant="subtle" onClick={() => setEditando(u)} aria-label={t('comun.editar')}>
-                        <IconPencil size={16} />
-                      </ActionIcon>
-                    </Tooltip>
-                    <Tooltip label="Cambiar contraseña">
-                      <ActionIcon variant="subtle" onClick={() => setPasswordDe(u)} aria-label="Cambiar contraseña">
-                        <IconKey size={16} />
-                      </ActionIcon>
-                    </Tooltip>
-                    {u.id !== yo?.id && (
-                      <Tooltip label={t('comun.borrar')}>
-                        <ActionIcon variant="subtle" color="red" onClick={() => borrar(u)} aria-label={t('comun.borrar')}>
-                          <IconTrash size={16} />
-                        </ActionIcon>
-                      </Tooltip>
-                    )}
-                  </Group>
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-      </Table.ScrollContainer>
+      <Title order={2}>{t('nav.usuarios')}</Title>
+      <Tabs defaultValue="cuentas">
+        <Tabs.List mb="md">
+          <Tabs.Tab value="cuentas" leftSection={<IconUsers size={16} />}>Cuentas</Tabs.Tab>
+          <Tabs.Tab value="responsables" leftSection={<IconUserShield size={16} />}>Responsables del plan del centro</Tabs.Tab>
+        </Tabs.List>
+        <Tabs.Panel value="responsables">
+          <ResponsablesCentro usuarios={usuarios} />
+        </Tabs.Panel>
+        <Tabs.Panel value="cuentas">
+          <Stack>
+            <Group justify="flex-end">
+              <Button leftSection={<IconPlus size={16} />} onClick={() => setEditando('nuevo')}>
+                Nuevo usuario
+              </Button>
+            </Group>
+            <Table.ScrollContainer minWidth={640}>
+              <Table striped highlightOnHover>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Usuario</Table.Th>
+                    <Table.Th>Rol</Table.Th>
+                    <Table.Th>Ámbito</Table.Th>
+                    <Table.Th>Activo</Table.Th>
+                    <Table.Th />
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {isLoading && (
+                    <Table.Tr>
+                      <Table.Td colSpan={5}>{t('comun.cargando')}</Table.Td>
+                    </Table.Tr>
+                  )}
+                  {usuarios.map((u) => (
+                    <Table.Tr key={u.id} opacity={u.activo ? 1 : 0.5}>
+                      <Table.Td>
+                        <Text size="sm" fw={500}>{u.nombre || '—'}</Text>
+                        <Text size="xs" c="dimmed">{u.email}</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge color={u.rol === 'admin' ? 'grape' : u.rol === 'transversal' ? 'teal' : 'blue'} variant="light">{t(`rol.${u.rol}`)}</Badge>
+                      </Table.Td>
+                      <Table.Td>
+                        <Group gap={4}>
+                          {u.rol === 'admin' ? (
+                            <Text size="xs" c="dimmed">Todos los planes</Text>
+                          ) : u.rol === 'transversal' ? (
+                            responsabilidadesDe(u.id).length ? (
+                              responsabilidadesDe(u.id).map((r) => <Badge key={r} variant="outline" color="teal" size="sm" tt="none">{r}</Badge>)
+                            ) : (
+                              <Text size="xs" c="orange">Sin responsabilidades asignadas</Text>
+                            )
+                          ) : (
+                            u.perfil_titulacion.map((pt) => <Badge key={pt.titulacion} variant="outline" size="sm">{pt.titulacion}</Badge>)
+                          )}
+                        </Group>
+                      </Table.Td>
+                      <Table.Td>{u.activo ? t('comun.si') : t('comun.no')}</Table.Td>
+                      <Table.Td>
+                        <Group gap={4} justify="flex-end" wrap="nowrap">
+                          <Tooltip label={t('comun.editar')}>
+                            <ActionIcon variant="subtle" onClick={() => setEditando(u)} aria-label={t('comun.editar')}>
+                              <IconPencil size={16} />
+                            </ActionIcon>
+                          </Tooltip>
+                          {u.id !== yo?.id && u.activo && (
+                            <Tooltip label="Enviar enlace de acceso">
+                              <ActionIcon variant="subtle" onClick={() => enviarAcceso(u)} aria-label="Enviar enlace de acceso">
+                                <IconMail size={16} />
+                              </ActionIcon>
+                            </Tooltip>
+                          )}
+                          <Tooltip label="Cambiar contraseña">
+                            <ActionIcon variant="subtle" onClick={() => setPasswordDe(u)} aria-label="Cambiar contraseña">
+                              <IconKey size={16} />
+                            </ActionIcon>
+                          </Tooltip>
+                          {u.id !== yo?.id && (
+                            <Tooltip label={t('comun.borrar')}>
+                              <ActionIcon variant="subtle" color="red" onClick={() => borrar(u)} aria-label={t('comun.borrar')}>
+                                <IconTrash size={16} />
+                              </ActionIcon>
+                            </Tooltip>
+                          )}
+                        </Group>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </Table.ScrollContainer>
+          </Stack>
+        </Tabs.Panel>
+      </Tabs>
 
       <Modal
         opened={editando !== null}
@@ -194,6 +249,8 @@ export function Usuarios() {
             usuario={editando === 'nuevo' ? null : editando}
             esYo={editando !== 'nuevo' && editando.id === yo?.id}
             opcionesTitulaciones={opcionesTitulaciones}
+            responsables={responsables}
+            usuarios={usuarios}
             enviando={guardar.isPending}
             onGuardar={(v) => guardar.mutate(v)}
             onCancelar={() => setEditando(null)}
@@ -223,6 +280,8 @@ function FormUsuario(props: {
   usuario: PerfilConTitulaciones | null
   esYo: boolean
   opcionesTitulaciones: { value: string; label: string }[]
+  responsables: ResponsableCentro[]
+  usuarios: PerfilConTitulaciones[]
   enviando: boolean
   onGuardar: (v: DatosUsuario) => void
   onCancelar: () => void
@@ -235,6 +294,7 @@ function FormUsuario(props: {
       nombre: u?.nombre ?? '',
       rol: u?.rol ?? 'coordinador',
       titulaciones: u?.perfil_titulacion.map((p) => p.titulacion) ?? [],
+      responsabilidades: u ? props.responsables.filter((r) => r.gestor === u.id).map((r) => r.nombre) : [],
       activo: u?.activo ?? true,
       password: u ? '' : generarPassword(),
     },
@@ -251,7 +311,8 @@ function FormUsuario(props: {
         <Select
           label="Rol"
           data={[
-            { value: 'coordinador', label: t('rol.coordinador') },
+            { value: 'coordinador', label: `${t('rol.coordinador')} de titulación` },
+            { value: 'transversal', label: `${t('rol.transversal')} (responsabilidades del plan del centro)` },
             { value: 'admin', label: `${t('rol.admin')} (acceso a todos los planes)` },
           ]}
           allowDeselect={false}
@@ -264,6 +325,18 @@ function FormUsuario(props: {
             data={props.opcionesTitulaciones}
             searchable
             {...form.getInputProps('titulaciones')}
+          />
+        )}
+        {form.values.rol === 'transversal' && (
+          <MultiSelect
+            label="Responsabilidades en el plan del centro"
+            description="Verá las acciones del plan del centro con estos responsables y podrá registrar su seguimiento. Se pueden cambiar también desde «Responsables del plan del centro»."
+            data={props.responsables.map((r) => {
+              const otro = r.gestor && r.gestor !== u?.id ? props.usuarios.find((x) => x.id === r.gestor) : null
+              return { value: r.nombre, label: otro ? `${r.nombre} (ahora: ${otro.nombre || otro.email})` : r.nombre }
+            })}
+            searchable
+            {...form.getInputProps('responsabilidades')}
           />
         )}
         {!u && (

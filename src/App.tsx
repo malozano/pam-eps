@@ -15,12 +15,14 @@ import { Inicio } from './pages/Inicio'
 import { Login } from './pages/Login'
 import { NoEncontrada } from './pages/NoEncontrada'
 import { Perfil } from './pages/Perfil'
+import { Restablecer } from './pages/Restablecer'
 import { IndicePlanes, PlanPublico } from './pages/PlanPublico'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/restablecer" element={<Restablecer />} />
       {/* Rutas públicas (sin iniciar sesión) */}
       <Route path="/plan" element={<IndicePlanes />} />
       <Route path="/plan/:codigo" element={<PlanPublico />} />

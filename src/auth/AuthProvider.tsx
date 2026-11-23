@@ -9,7 +9,10 @@ interface AuthState {
   perfil: Perfil | null
   /** Códigos de titulación que el usuario gestiona (el admin gestiona todas). */
   titulaciones: string[]
+  /** Responsabilidades del plan del centro asignadas a una cuenta de coordinación transversal. */
+  responsabilidades: string[]
   esAdmin: boolean
+  esTransversal: boolean
   salir: () => Promise<void>
 }
 
@@ -19,6 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [titulaciones, setTitulaciones] = useState<string[]>([])
+  const [responsabilidades, setResponsabilidades] = useState<string[]>([])
   const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
@@ -35,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!userId) {
       setPerfil(null)
       setTitulaciones([])
+      setResponsabilidades([])
       return
     }
     let cancelado = false
@@ -42,10 +47,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     Promise.all([
       supabase.from('perfiles').select('*').eq('id', userId).single(),
       supabase.from('perfil_titulacion').select('titulacion').eq('perfil_id', userId),
-    ]).then(([p, t]) => {
+      supabase.from('responsables').select('nombre').eq('gestor', userId).eq('para_centro', true).order('nombre'),
+    ]).then(([p, t, r]) => {
       if (cancelado) return
       setPerfil((p.data as Perfil) ?? null)
-      setTitulaciones((t.data ?? []).map((r) => r.titulacion as string))
+      setTitulaciones((t.data ?? []).map((x) => x.titulacion as string))
+      setResponsabilidades((r.data ?? []).map((x) => x.nombre as string))
       setCargando(false)
     })
     return () => {
@@ -58,7 +65,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     perfil,
     titulaciones,
+    responsabilidades,
     esAdmin: perfil?.rol === 'admin' && perfil.activo,
+    esTransversal: perfil?.rol === 'transversal' && perfil.activo,
     salir: async () => {
       await supabase.auth.signOut()
     },

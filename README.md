@@ -20,13 +20,16 @@ de la Escuela Politécnica Superior (y el plan transversal del centro, código `
 | 5 | Vista pública por titulación/curso (`/plan/<código>/<año>`, castellano/valenciano) y exportación a Excel (formato común, reimportable) | ✅ |
 | 5b | Catálogo de indicadores (79 con código, por procedimiento), varios indicadores por acción, página de consulta y mantenimiento | ✅ |
 | 5c | Consultas (administración): pendientes por responsable con listados para copiar, consulta con filtros y estadísticas | ✅ |
+| 5d | Coordinación transversal: cuentas para las responsabilidades del plan del centro, «Mis acciones», seguimiento con revisión por la administración y recuperación de contraseña | ✅ |
+| 5e | Resumen mensual por correo (a mitad de mes) para cuentas transversales y coordinación de titulación | ⏳ |
 | 6 | Piloto | ⏳ |
 
 ## Modelo de datos
 
 - `titulaciones`: código (`D110`, `C203`, `CEN`…), nombre, siglas, tipo.
-- `perfiles` + `perfil_titulacion`: usuarios con rol `admin` (acceso a todo) o `coordinador`
-  (solo las titulaciones asignadas).
+- `perfiles` + `perfil_titulacion`: usuarios con rol `admin` (acceso a todo), `coordinador`
+  (solo las titulaciones asignadas) o `transversal` (acciones del plan del centro de sus
+  responsabilidades).
 - `acciones`: una fila por acción. `anyo` es el año de inicio del curso (2026 ⇒ 2026-27).
   El código `AM-<titulación>-<año>-<nn>` se genera automáticamente al dar de alta; los
   números de acciones borradas no se reutilizan. Las acciones importadas conservan su
@@ -37,7 +40,8 @@ de la Escuela Politécnica Superior (y el plan transversal del centro, código `
   Cada acción guarda una lista de indicadores (`indicadores text[]`): códigos del catálogo,
   «Si / No» o textos sin código. En Excel van en una celda separados por comas.
 - `responsables`: catálogo de roles responsables. Cada uno indica si sirve para los planes de
-  titulación (`para_titulaciones`), para el plan del centro (`para_centro`) o para ambos.
+  titulación (`para_titulaciones`), para el plan del centro (`para_centro`) o para ambos. En el
+  plan del centro, `gestor` es la cuenta transversal que gestiona esa responsabilidad.
 - `plan_publico(titulacion, anyo)`: función pública que devuelve las **acciones de mejora**
   del curso indicado más las de cursos anteriores que sigan *pendientes* o *en proceso*.
 
@@ -162,6 +166,34 @@ Sección «Consultas» del menú, solo para el administrador, con tres pestañas
   titulaciones, con el porcentaje a cargo de «Coordinación titulación»), acciones por
   titulación y curso, y evolución por curso.
 
+## Coordinación transversal (responsables del plan del centro)
+
+Las responsabilidades del plan del centro («Coordinación calidad», «Coordinación movilidad»…) se
+pueden asignar a **cuentas de coordinación transversal**, creadas preferiblemente con el **correo
+institucional del cargo** (así la cuenta no cambia aunque cambie la persona). Se gestiona en
+«Usuarios»:
+
+- **Cuentas**: al crear o editar una cuenta con el rol «Coordinación transversal» se eligen sus
+  responsabilidades. El botón del sobre envía a la cuenta un **enlace para elegir su contraseña**
+  (sirve una vez y caduca en una hora).
+- **Responsables del plan del centro**: directorio con la cuenta que gestiona cada responsabilidad.
+  Una cuenta puede tener varias (p. ej., «Coordinación EPS» y «Dirección departamentos»). Las que no
+  tienen cuenta las gestiona la administración. Avisa de las acciones abiertas del centro cuyo
+  responsable no está en la lista.
+
+Una cuenta transversal solo ve **«Mis acciones»**: sus acciones abiertas del plan del centro por
+prioridad (plazo vencido, vencen en los próximos 60 días, en curso o que ya deberían haber empezado,
+empiezan más adelante) y el histórico de las completadas o canceladas por curso. Puede **registrar
+el seguimiento** (también cancelar) pero no crear, editar ni borrar acciones; los permisos se
+comprueban en la base de datos. Cada seguimiento que registra envía **al momento un aviso a la
+administración** (push y correo, según sus preferencias) y queda **«pendiente de revisar»** en el
+inicio y en la ficha de la acción hasta que se marca como revisado. Los planes de las titulaciones no
+cambian: los gestiona su coordinación.
+
+**Recuperación de contraseña**: «¿Has olvidado tu contraseña?» en la pantalla de acceso envía un
+enlace por correo (por el mismo SMTP de los avisos; como mucho uno cada 10 minutos por dirección y
+sin revelar si la cuenta existe).
+
 ## URL públicas
 
 - Índice de planes: `https://<usuario>.github.io/pam-eps/plan`
@@ -195,7 +227,7 @@ una sola vez por acción y fecha; los días se configuran en «Avisos» (adminis
 - **Email** por SMTP con SSL (puerto 465; Supabase bloquea los puertos 25 y 587). Se configura con
   secretos de la Edge Function (Supabase → Edge Functions → Secrets): `SMTP_HOST` (p. ej.
   `smtp.gmail.com`), `SMTP_PORT` = `465`, `SMTP_USER`, `SMTP_PASS` (contraseña de aplicación) y
-  `SMTP_FROM` (p. ej. `Planes de mejora EPS <cuenta@gmail.com>`). Sin ellos solo se envía push. Cada
+  `SMTP_FROM` (p. ej. `Seguimiento Calidad EPS <cuenta@gmail.com>`). Sin ellos solo se envía push. Cada
   usuario puede desactivar los avisos por email y enviarse un email de prueba en «Mi cuenta».
 
 ## Idiomas

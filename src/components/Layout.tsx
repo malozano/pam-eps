@@ -17,7 +17,7 @@ export function Layout() {
   const [abierto, { toggle, close }] = useDisclosure()
   const [instalarAbierto, { open: abrirInstalar, close: cerrarInstalar }] = useDisclosure()
   const { t, i18n } = useTranslation()
-  const { perfil, esAdmin, salir } = useAuth()
+  const { perfil, esAdmin, esTransversal, salir } = useAuth()
   const { pathname, search } = useLocation()
   const navigate = useNavigate()
   // Cada página nueva empieza arriba (el listado del plan restaura después su posición)
@@ -98,8 +98,8 @@ export function Layout() {
         </Group>
       </AppShell.Header>
       <AppShell.Navbar p="xs">
-        {enlace('/', t('nav.inicio'), <IconHome size={18} />)}
-        {enlace('/indicadores', t('nav.indicadores'), <IconChartBar size={18} />)}
+        {enlace('/', esTransversal ? t('nav.misAcciones') : t('nav.inicio'), <IconHome size={18} />)}
+        {!esTransversal && enlace('/indicadores', t('nav.indicadores'), <IconChartBar size={18} />)}
         {esAdmin && enlace('/admin/consultas', t('nav.consultas'), <IconListSearch size={18} />)}
         {esAdmin && enlace('/admin/usuarios', t('nav.usuarios'), <IconUsers size={18} />)}
         {esAdmin && enlace('/admin/avisos', t('nav.avisos'), <IconBell size={18} />)}

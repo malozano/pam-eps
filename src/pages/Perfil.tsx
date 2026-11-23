@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabase'
 
 export function Perfil() {
   const { t } = useTranslation()
-  const { perfil, titulaciones, esAdmin } = useAuth()
+  const { perfil, titulaciones, responsabilidades, esAdmin } = useAuth()
   const form = useForm({
     initialValues: { password: '', repetir: '' },
     validate: {
@@ -27,6 +27,7 @@ export function Perfil() {
         <Group gap={4} mt="xs">
           <Badge>{t(`rol.${perfil?.rol ?? 'coordinador'}`)}</Badge>
           {!esAdmin && titulaciones.map((c) => <Badge key={c} variant="light">{c}</Badge>)}
+          {responsabilidades.map((r) => <Badge key={r} variant="light" color="teal" tt="none">{r}</Badge>)}
         </Group>
       </Paper>
       <Notificaciones />

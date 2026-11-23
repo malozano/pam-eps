@@ -3,7 +3,7 @@
 // por eso no puede hacerse desde el navegador.
 //
 // Acciones (POST JSON):
-//   { accion: 'crear', email, password, nombre?, rol, titulaciones: string[] }
+//   { accion: 'crear', email, password, nombre?, rol ('admin' | 'coordinador' | 'transversal'), titulaciones: string[] }
 //   { accion: 'password', id, password }
 //   { accion: 'borrar', id }
 import { createClient } from 'npm:@supabase/supabase-js@2'
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
         const email = String(body.email ?? '').trim().toLowerCase()
         const password = String(body.password ?? '')
         const nombre = body.nombre ? String(body.nombre).trim() : null
-        const rol = body.rol === 'admin' ? 'admin' : 'coordinador'
+        const rol = body.rol === 'admin' || body.rol === 'transversal' ? body.rol : 'coordinador'
         const titulaciones = Array.isArray(body.titulaciones) ? body.titulaciones.map(String) : []
         if (!/^\S+@\S+\.\S+$/.test(email)) return respuesta({ error: 'Email no válido' }, 400)
         if (password.length < 10) return respuesta({ error: 'La contraseña debe tener al menos 10 caracteres' }, 400)

@@ -1,6 +1,7 @@
 import { Alert, Button, Group, Modal, SegmentedControl, SimpleGrid, Stack, Text, Textarea } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
 import { useForm } from '@mantine/form'
+import { useAuth } from '../auth/AuthProvider'
 import { notifications } from '@mantine/notifications'
 import { IconCalendar } from '@tabler/icons-react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -61,6 +62,7 @@ interface Valores {
 }
 
 function Formulario({ accion, onClose }: { accion: Accion; onClose: () => void }) {
+  const { esTransversal } = useAuth()
   const qc = useQueryClient()
   const [enviando, setEnviando] = useState(false)
   const form = useForm<Valores>({
@@ -107,7 +109,10 @@ function Formulario({ accion, onClose }: { accion: Accion; onClose: () => void }
       qc.invalidateQueries({ queryKey: ['acciones'] }),
       qc.invalidateQueries({ queryKey: ['historial', accion.id] }),
     ])
-    notifications.show({ color: 'green', message: 'Seguimiento registrado' })
+    notifications.show({
+      color: 'green',
+      message: esTransversal ? 'Seguimiento registrado. La coordinación de calidad recibirá un aviso.' : 'Seguimiento registrado',
+    })
     onClose()
   }
 

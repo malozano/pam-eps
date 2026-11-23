@@ -4,7 +4,7 @@ import {
 import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
 import {
-  IconArchive, IconArchiveOff, IconCalendarEvent, IconChecklist, IconFileImport, IconNote, IconPencil, IconPlus,
+  IconArchive, IconArchiveOff, IconCalendarEvent, IconCheck, IconChecklist, IconFileImport, IconNote, IconPencil, IconPlus,
 } from '@tabler/icons-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
@@ -14,6 +14,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { EstadoBadge } from '../components/EstadoBadge'
 import { ListaIndicadores } from '../components/ListaIndicadores'
 import { SeguimientoModal } from '../components/SeguimientoModal'
+import { marcarRevisados } from '../components/SeguimientosPorRevisar'
 import { SituacionBadge } from '../components/SituacionBadge'
 import { TextoConEnlaces } from '../components/TextoConEnlaces'
 import { etiquetaCurso } from '../lib/cursos'
@@ -50,20 +51,22 @@ export function FichaAccion() {
   const { codigo = '', id = '' } = useParams()
   const { t } = useTranslation()
   const qc = useQueryClient()
-  const { esAdmin, titulaciones: mias } = useAuth()
+  const { esAdmin, esTransversal, titulaciones: mias } = useAuth()
   const { data: titulaciones = [] } = useTitulaciones()
   const { data: acciones = [], isLoading } = useAccionesTitulacion(codigo)
   const { data: historial = [], isLoading: cargandoHistorial } = useHistorial(id)
   const [seguimiento, setSeguimiento] = useState(false)
 
-  if (!esAdmin && !mias.includes(codigo)) return <Navigate to="/" replace />
+  // Las cuentas transversales solo consultan (y registran el seguimiento de) sus acciones del CEN
+  const soloSeguimiento = esTransversal && codigo === 'CEN'
+  if (!esAdmin && !mias.includes(codigo) && !soloSeguimiento) return <Navigate to="/" replace />
   if (isLoading) return <Skeleton h={400} />
   const a = acciones.find((x) => x.id === id)
   const tit = titulaciones.find((x) => x.codigo === codigo)
   if (!a)
     return (
       <Alert color="red" title="Acción no encontrada">
-        <Anchor component={Link} to={`/gestion/${codigo}`}>Volver al plan</Anchor>
+        <Anchor component={Link} to={soloSeguimiento ? '/' : `/gestion/${codigo}`}>Volver</Anchor>
       </Alert>
     )
 
@@ -94,8 +97,8 @@ export function FichaAccion() {
 
   return (
     <Stack maw={960}>
-      <Anchor component={Link} to={`/gestion/${codigo}`} size="sm">
-        ← {tit ? `Plan ${tit.codigo}` : 'Volver al plan'}
+      <Anchor component={Link} to={soloSeguimiento ? '/' : `/gestion/${codigo}`} size="sm">
+        ← {soloSeguimiento ? 'Mis acciones' : tit ? `Plan ${tit.codigo}` : 'Volver al plan'}
       </Anchor>
 
       <Stack gap={6}>
@@ -114,10 +117,12 @@ export function FichaAccion() {
         <Button leftSection={<IconNote size={16} />} onClick={() => setSeguimiento(true)}>
           Registrar seguimiento
         </Button>
-        <Button variant="default" leftSection={<IconPencil size={16} />} component={Link} to="editar">
-          Editar
-        </Button>
-        {!estaAbierta(a.estado) &&
+        {!soloSeguimiento && (
+          <Button variant="default" leftSection={<IconPencil size={16} />} component={Link} to="editar">
+            Editar
+          </Button>
+        )}
+        {!soloSeguimiento && !estaAbierta(a.estado) &&
           (a.cerrada ? (
             <Button variant="subtle" color="gray" leftSection={<IconArchiveOff size={16} />} onClick={() => cambiarCerrada(false)}>
               Quitar marca de cerrada
@@ -182,6 +187,18 @@ export function FichaAccion() {
                   {new Date(h.fecha).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}
                   {h.usuario_email && ` · ${h.usuario_email}`}
                 </Text>
+                {esAdmin && h.requiere_revision && !h.revisado && (
+                  <Group gap="xs" mt={4}>
+                    <Badge color="yellow" size="sm">Pendiente de revisar</Badge>
+                    <Button size="compact-xs" variant="light" color="green" leftSection={<IconCheck size={12} />}
+                      onClick={() => marcarRevisados([h.id]).then(() => Promise.all([
+                        qc.invalidateQueries({ queryKey: ['historial', a.id] }),
+                        qc.invalidateQueries({ queryKey: ['por_revisar'] }),
+                      ])).catch((e: Error) => notifications.show({ color: 'red', title: 'No se ha guardado', message: e.message }))}>
+                      Marcar como revisado
+                    </Button>
+                  </Group>
+                )}
                 {h.tipo !== 'cierre' && h.tipo !== 'alta' && h.tipo !== 'importacion' && h.comentario && (
                   <TextoConEnlaces texto={h.comentario} size="sm" mt={4} />
                 )}

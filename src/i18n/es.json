@@ -12,7 +12,8 @@
     "publicos": "Planes publicados",
     "instalar": "Instalar la aplicación",
     "avisos": "Avisos",
-    "consultas": "Consultas"
+    "consultas": "Consultas",
+    "misAcciones": "Mis acciones"
   },
   "login": {
     "titulo": "Acceso coordinación",
@@ -30,7 +31,8 @@
   },
   "rol": {
     "admin": "Administración",
-    "coordinador": "Coordinación"
+    "coordinador": "Coordinación",
+    "transversal": "Coordinación transversal"
   },
   "inicio": {
     "bienvenida": "Hola, {{nombre}}",
