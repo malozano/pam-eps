@@ -13,6 +13,7 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { EstadoBadge } from '../components/EstadoBadge'
 import { ListaIndicadores } from '../components/ListaIndicadores'
+import { AvisoAccionPorRevisar } from '../components/Revision'
 import { SeguimientoModal } from '../components/SeguimientoModal'
 import { marcarRevisados } from '../components/SeguimientosPorRevisar'
 import { SituacionBadge } from '../components/SituacionBadge'
@@ -113,6 +114,8 @@ export function FichaAccion() {
         <Title order={2}>{a.nombre}</Title>
       </Stack>
 
+      <AvisoAccionPorRevisar accion={a} />
+
       <Group gap="xs">
         <Button leftSection={<IconNote size={16} />} onClick={() => setSeguimiento(true)}>
           Registrar seguimiento
@@ -180,7 +183,9 @@ export function FichaAccion() {
                     ? (h.comentario ?? 'Cierre')
                     : cambio
                       ? `${t(`estado.${h.estado_anterior}`)} → ${t(`estado.${h.estado_nuevo}`)}`
-                      : 'Nota de seguimiento'
+                      : !h.comentario && !h.evidencias && !h.fecha_inicio && !h.fecha_fin
+                        ? `Estado confirmado sin cambios (${t(`estado.${h.estado_nuevo}`)})`
+                        : 'Nota de seguimiento'
             return (
               <Timeline.Item key={h.id} bullet={ICONO[h.tipo]} title={<Text size="sm" fw={500}>{titulo}</Text>}>
                 <Text size="xs" c="dimmed">

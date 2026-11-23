@@ -10,6 +10,7 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { EstadoBadge } from '../components/EstadoBadge'
 import { InformeCen19Panel } from '../components/InformeCen19Panel'
+import { AvisoRevisionInforme } from '../components/Revision'
 import { SituacionBadge } from '../components/SituacionBadge'
 import { TextoConEnlaces } from '../components/TextoConEnlaces'
 import { etiquetaCurso } from '../lib/cursos'
@@ -90,6 +91,7 @@ export function InformeSeguimiento() {
         <Title order={2}>Informe de seguimiento</Title>
         <Text c="dimmed">{tit ? `${tit.codigo} · ${tit.nombre}` : codigo}</Text>
       </div>
+      {!isLoading && <AvisoRevisionInforme titulacion={codigo} acciones={acciones} />}
       {tit && !isLoading && <InformeCen19Panel titulacion={tit} acciones={acciones} />}
       <Title order={4} mt="sm">
         Acciones para el informe

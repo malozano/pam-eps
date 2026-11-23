@@ -6,15 +6,17 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { EstadoBadge } from '../components/EstadoBadge'
 import { SituacionBadge } from '../components/SituacionBadge'
+import { BadgePorRevisar, ProgresoRevision } from '../components/Revision'
 import { SugerenciaNotificaciones } from '../components/SugerenciaNotificaciones'
 import { anyoPorDefecto, etiquetaCurso } from '../lib/cursos'
 import { fechaCorta } from '../lib/formato'
 import { porPrioridad, PRIORIDADES } from '../lib/prioridad'
+import { usePorRevisar } from '../lib/revision'
 import { estaAbierta } from '../lib/seguimiento'
 import type { Accion } from '../lib/tipos'
 import { useAccionesTitulacion } from '../lib/useCatalogos'
 
-function TablaAcciones({ acciones, verResponsable }: { acciones: Accion[]; verResponsable: boolean }) {
+function TablaAcciones({ acciones, verResponsable, porRevisar }: { acciones: Accion[]; verResponsable: boolean; porRevisar: Set<string> }) {
   return (
     <Table.ScrollContainer minWidth={640}>
       <Table verticalSpacing={6} fz="sm" highlightOnHover>
@@ -27,6 +29,7 @@ function TablaAcciones({ acciones, verResponsable }: { acciones: Accion[]; verRe
               <Table.Td>
                 <Text size="sm" lineClamp={2}>{a.nombre}</Text>
                 <Group gap={4} mt={2}>
+                  {porRevisar.has(a.id) && <BadgePorRevisar />}
                   <SituacionBadge accion={a} />
                   {verResponsable && a.responsable && <Badge size="xs" variant="outline" color="gray" tt="none">{a.responsable}</Badge>}
                 </Group>
@@ -59,6 +62,7 @@ export function MisAcciones() {
   }, [acciones])
   const abiertas = acciones.filter((a) => estaAbierta(a.estado)).length
   const varias = responsabilidades.length > 1
+  const rev = usePorRevisar('CEN', 'centro')
 
   return (
     <Stack maw={1100}>
@@ -70,6 +74,15 @@ export function MisAcciones() {
         </Group>
       </div>
       <SugerenciaNotificaciones />
+      {rev.revision && rev.filas.length > 0 && (
+        <ProgresoRevision revision={rev.revision} total={rev.filas.length} revisadas={rev.revisadas}>
+          {rev.porRevisar.size > 0 && (
+            <Text size="sm" fw={500}>
+              Te {rev.porRevisar.size === 1 ? 'queda 1 acción' : `quedan ${rev.porRevisar.size} acciones`} por revisar
+            </Text>
+          )}
+        </ProgresoRevision>
+      )}
 
       {responsabilidades.length === 0 ? (
         <Alert color="yellow">
@@ -92,7 +105,7 @@ export function MisAcciones() {
                 <Badge color={color}>{grupos[prioridad].length}</Badge>
               </Group>
               <Text size="xs" c="dimmed" mb="xs">{ayuda}</Text>
-              <TablaAcciones acciones={grupos[prioridad]} verResponsable={varias} />
+              <TablaAcciones acciones={grupos[prioridad]} verResponsable={varias} porRevisar={rev.porRevisar} />
             </Paper>
           ))}
 
@@ -108,7 +121,7 @@ export function MisAcciones() {
                         <Badge variant="light" color="gray">{lista.length}</Badge>
                       </Group>
                     </Accordion.Control>
-                    <Accordion.Panel><TablaAcciones acciones={lista} verResponsable={varias} /></Accordion.Panel>
+                    <Accordion.Panel><TablaAcciones acciones={lista} verResponsable={varias} porRevisar={rev.porRevisar} /></Accordion.Panel>
                   </Accordion.Item>
                 ))}
               </Accordion>

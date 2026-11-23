@@ -22,6 +22,7 @@ de la Escuela Politécnica Superior (y el plan transversal del centro, código `
 | 5c | Consultas (administración): pendientes por responsable con listados para copiar, consulta con filtros y estadísticas | ✅ |
 | 5d | Coordinación transversal: cuentas para las responsabilidades del plan del centro, «Mis acciones», seguimiento con revisión por la administración y recuperación de contraseña | ✅ |
 | 5e | Resumen mensual por correo (día configurable, 15 por defecto) y avisos de plazo a las cuentas transversales | ✅ |
+| 5f | Revisión del estado antes de los informes (plan del centro o planes de titulación), con «Confirmar estado actual» y origen propuesto según la época del año | ✅ |
 | 6 | Piloto | ⏳ |
 
 ## Modelo de datos
@@ -193,6 +194,28 @@ cambian: los gestiona su coordinación.
 **Recuperación de contraseña**: «¿Has olvidado tu contraseña?» en la pantalla de acceso envía un
 enlace por correo (por el mismo SMTP de los avisos; como mucho uno cada 10 minutos por dirección y
 sin revelar si la cuenta existe).
+
+## Revisión del estado antes de los informes
+
+En «Consultas → Revisión del estado» la administración abre una revisión del **plan del centro**
+(para el CEN02) o de **todos los planes de titulación** (cuando se abre el periodo de los CEN10 o
+CEN19), con un nombre propuesto según la época del año. Entran las acciones abiertas creadas antes
+del inicio; una acción queda **revisada** cuando, desde entonces, se registra su seguimiento o se
+**confirma su estado actual** (botón en la ficha, sin escribir nada; no genera aviso ni revisión
+por la administración). No se guarda nada nuevo en las acciones: se deduce del historial (tabla
+`revisiones` y funciones `estado_revision` y `recuento_revision`).
+
+- Coordinación de titulación: progreso y enlace en el inicio, barra y filtro «Solo por revisar» en
+  su plan, marca «Por revisar» en cada acción y aviso en la página del informe de seguimiento si le
+  quedan acciones por revisar.
+- Cuentas transversales: aviso y marcas en «Mis acciones».
+- Administración: progreso en el inicio, detalle por titulación (planes de titulación) o por
+  responsable con «Copiar listado» (plan del centro), aviso cuando todas están revisadas y
+  «Finalizar revisión», que guarda el resultado en el histórico de revisiones.
+
+Al crear una acción, el origen propone el informe de la época: de noviembre a enero, el anual del
+curso anterior (CEN10, o CEN02 en el plan del centro); de febrero a mayo, el CEN19 de primer semestre
+del curso vigente; de junio a octubre, el CEN19 de segundo semestre del curso terminado.
 
 ## URL públicas
 

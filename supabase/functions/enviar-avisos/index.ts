@@ -163,7 +163,7 @@ const corto = (t: string, n: number) => (t.length > n ? t.slice(0, n - 1) + '…
 
 interface AvisoPendiente {
   id: number
-  tipo: 'inicio' | 'fin_proximo' | 'vencida' | 'seguimiento'
+  tipo: 'inicio' | 'fin_proximo' | 'vencida' | 'seguimiento' | 'revision'
   perfil_id: string
   acciones: {
     id: string; codigo: string; nombre: string; titulacion: string; estado: string; responsable: string | null
@@ -179,6 +179,16 @@ interface AvisoPendiente {
 function mensajeAviso(a: AvisoPendiente, urlApp: string) {
   const ac = a.acciones
   const nombre = corto(ac.nombre, 110)
+  if (a.tipo === 'revision') {
+    const centro = ac.titulacion === 'CEN'
+    return {
+      title: `Revisión completada: ${centro ? 'plan del centro' : 'planes de titulación'}`,
+      body: `Ya están revisadas todas las acciones de la revisión en curso ${centro ? 'del plan del centro' : 'de los planes de titulación'}.\nLa última ha sido ${ac.codigo}. Puedes finalizar la revisión en «Consultas → Revisión del estado».`,
+      url: `${urlApp}admin/consultas?tab=revision`,
+      boton: 'Ver la revisión',
+      tag: `revision-${centro ? 'centro' : 'titulaciones'}`,
+    }
+  }
   if (a.tipo === 'seguimiento') {
     const h = a.historial
     const quien = h?.perfiles?.nombre || h?.usuario_email || ac.responsable || 'Responsable'

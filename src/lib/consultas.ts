@@ -100,7 +100,7 @@ const ESTADO_TXT: Record<EstadoAccion, string> = {
 }
 
 /** Texto para pegar en un correo: una entrada por acción, con el plazo y si ha vencido. */
-export function textoListado<T extends Accion>(g: GrupoResponsable<T>, urlApp: string, hoy = hoyISO()): string {
+export function textoListado<T extends Accion>(g: GrupoResponsable<T>, urlApp: string, hoy = hoyISO(), titulo = 'Acciones abiertas'): string {
   const lineas = g.acciones.map((a) => {
     const s = situacion(a, hoy)
     const plazo =
@@ -116,7 +116,7 @@ export function textoListado<T extends Accion>(g: GrupoResponsable<T>, urlApp: s
       urlApp ? `\n   ${urlApp}gestion/${a.titulacion}/accion/${a.id}` : ''
     }`
   })
-  const cabecera = `Acciones abiertas de ${g.responsable}${g.titulacion ? ` (plan ${g.titulacion})` : ''}: ${g.acciones.length}${
+  const cabecera = `${titulo} de ${g.responsable}${g.titulacion ? ` (plan ${g.titulacion})` : ''}: ${g.acciones.length}${
     g.vencidas ? `, ${g.vencidas} con el plazo vencido` : ''
   }`
   return `${cabecera}\n\n${lineas.join('\n\n')}`

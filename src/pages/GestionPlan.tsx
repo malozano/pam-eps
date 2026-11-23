@@ -14,11 +14,13 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 import { useAuth } from '../auth/AuthProvider'
 import { EstadoBadge } from '../components/EstadoBadge'
 import { estaInstalada } from '../components/Pwa'
+import { BadgePorRevisar, ProgresoRevision } from '../components/Revision'
 import { SituacionBadge } from '../components/SituacionBadge'
 import { anyoPorDefecto, etiquetaCurso } from '../lib/cursos'
 import { fechaCorta } from '../lib/formato'
 import { normalizar } from '../lib/importacion'
 import { filtrosGuardados, guardarFiltros, guardarScroll, scrollGuardado } from '../lib/memoriaVista'
+import { ambitoDe, usePorRevisar } from '../lib/revision'
 import { enPlanDelCurso } from '../lib/seguimiento'
 import { ESTADOS, type EstadoAccion } from '../lib/tipos'
 import { descargar, generarExcel, nombreFichero } from '../lib/exportacion'
@@ -55,9 +57,12 @@ export function GestionPlan() {
       estados: (p.get('estado')?.split(',').filter(Boolean) ?? []) as EstadoAccion[],
       q: p.get('q') ?? '',
       cerradas: p.get('cerradas') === '1',
+      revision: p.get('revision') === '1',
     }
   })
-  const { curso, estados, q, cerradas: verCerradas } = filtros
+  const { curso, estados, q, cerradas: verCerradas, revision: soloPorRevisar } = filtros
+  const rev = usePorRevisar(codigo, ambitoDe(codigo))
+  const verPorRevisar = soloPorRevisar && !!rev.revision
   const setVerCerradas = (v: boolean) => actualizar('cerradas', v)
   useEffect(() => {
     const p = new URLSearchParams()
@@ -65,9 +70,10 @@ export function GestionPlan() {
     if (estados.length) p.set('estado', estados.join(','))
     if (q) p.set('q', q)
     if (verCerradas && curso === 'todos') p.set('cerradas', '1')
+    if (soloPorRevisar) p.set('revision', '1')
     guardarFiltros(codigo, p.toString())
     if (p.toString() !== params.toString()) setParams(p, { replace: true })
-  }, [codigo, curso, estados, q, verCerradas, params, setParams])
+  }, [codigo, curso, estados, q, verCerradas, soloPorRevisar, params, setParams])
 
   // Posición de desplazamiento: se guarda al salir del listado (antes de que la página nueva la
   // modifique) y se restaura al volver, cuando ya hay datos
@@ -101,11 +107,15 @@ export function GestionPlan() {
     const nq = normalizar(q)
     return acciones.filter(
       (a) =>
-        (curso === 'todos' ? verCerradas || !a.cerrada : enPlanDelCurso(a, Number(curso))) &&
+        // «Solo por revisar» muestra todas las pendientes de la revisión, sea cual sea su curso
+        (verPorRevisar
+          ? rev.porRevisar.has(a.id)
+          : curso === 'todos' ? verCerradas || !a.cerrada : enPlanDelCurso(a, Number(curso))) &&
         (estados.length === 0 || estados.includes(a.estado)) &&
         (!nq || normalizar(`${a.codigo} ${a.nombre} ${a.tareas ?? ''} ${a.responsable ?? ''}`).includes(nq)),
     )
-  }, [acciones, curso, estados, q, verCerradas])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [acciones, curso, estados, q, verCerradas, verPorRevisar, rev.porRevisar.size, rev.revisadas])
 
   if (!esAdmin && !titulaciones.includes(codigo)) return <Navigate to="/" replace />
   const tit = tits?.find((x) => x.codigo === codigo)
@@ -180,10 +190,21 @@ export function GestionPlan() {
         </Group>
       </Group>
 
+      {rev.revision && rev.filas.length > 0 && (
+        <ProgresoRevision revision={rev.revision} total={rev.filas.length} revisadas={rev.revisadas}>
+          <Switch
+            label="Solo por revisar"
+            checked={soloPorRevisar}
+            onChange={(e) => actualizar('revision', e.currentTarget.checked)}
+          />
+        </ProgresoRevision>
+      )}
+
       <Group align="flex-end" gap="md">
         <Select
           label="Curso"
           w={220}
+          disabled={verPorRevisar}
           allowDeselect={false}
           value={curso}
           onChange={(v) => v && actualizar('curso', v)}
@@ -218,7 +239,7 @@ export function GestionPlan() {
           />
         )}
       </Group>
-      {curso !== 'todos' && (
+      {curso !== 'todos' && !verPorRevisar && (
         <Text size="sm" c="dimmed">
           Acciones del curso {etiquetaCurso(Number(curso))} y de cursos anteriores que siguen pendientes o en proceso.
         </Text>
@@ -232,7 +253,11 @@ export function GestionPlan() {
           Este plan todavía no tiene acciones. Crea una con «Nueva acción» o importa el Excel actual.
         </Alert>
       ) : filtradas.length === 0 ? (
-        <Alert color="gray">Ninguna acción cumple los filtros.</Alert>
+        verPorRevisar ? (
+          <Alert color="green">No queda ninguna acción por revisar en este plan.</Alert>
+        ) : (
+          <Alert color="gray">Ninguna acción cumple los filtros.</Alert>
+        )
       ) : movil ? (
         <Stack gap="xs">
           {filtradas.map((a) => (
@@ -254,6 +279,7 @@ export function GestionPlan() {
                 {fechaCorta(a.fecha_inicio)} – {fechaCorta(a.fecha_fin)} · {a.responsable ?? 'Sin responsable'}
               </Text>
               <Group gap={4} mt={4}>
+                {rev.porRevisar.has(a.id) && <BadgePorRevisar />}
                 <SituacionBadge accion={a} />
                 {!a.es_mejora && <Badge size="xs" variant="outline" color="gray">No es acción de mejora</Badge>}
                 {a.cerrada && <Badge size="xs" variant="outline" color="gray">Cerrada</Badge>}
@@ -289,6 +315,7 @@ export function GestionPlan() {
                     <Table.Td>
                       <Text size="sm" lineClamp={2}>{a.nombre}</Text>
                       <Group gap={4} mt={2}>
+                        {rev.porRevisar.has(a.id) && <BadgePorRevisar />}
                         <SituacionBadge accion={a} />
                         {!a.es_mejora && <Badge size="xs" variant="outline" color="gray">No es acción de mejora</Badge>}
                         {a.cerrada && <Badge size="xs" variant="outline" color="gray">Cerrada</Badge>}

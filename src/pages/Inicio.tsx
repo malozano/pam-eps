@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { AvisoRevisionesAdmin, AvisoRevisionInicio } from '../components/Revision'
 import { SeguimientosPorRevisar } from '../components/SeguimientosPorRevisar'
 import { SugerenciaNotificaciones } from '../components/SugerenciaNotificaciones'
 import { EstadoBadge } from '../components/EstadoBadge'
@@ -83,6 +84,7 @@ function InicioGestion() {
     <Stack>
       <Title order={2}>{t('inicio.bienvenida', { nombre: perfil?.nombre || perfil?.email })}</Title>
       <SugerenciaNotificaciones />
+      {esAdmin ? <AvisoRevisionesAdmin /> : <AvisoRevisionInicio />}
       {esAdmin && <SeguimientosPorRevisar />}
 
       <Stack gap="xs">

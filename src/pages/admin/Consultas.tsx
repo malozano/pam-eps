@@ -4,13 +4,13 @@ import {
 } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
 import {
-  IconArrowsSort, IconCheck, IconChartBar, IconCopy, IconFileExport, IconFilter, IconListCheck, IconSearch, IconSortAscending,
+  IconArrowsSort, IconCheck, IconChartBar, IconClipboardCheck, IconCopy, IconFileExport, IconFilter, IconListCheck, IconSearch, IconSortAscending,
   IconSortDescending,
 } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { EstadoBadge } from '../../components/EstadoBadge'
 import { SituacionBadge } from '../../components/SituacionBadge'
 import {
@@ -24,6 +24,7 @@ import { hoyISO, situacion, type Situacion } from '../../lib/seguimiento'
 import { supabase } from '../../lib/supabase'
 import { ESTADOS, type Accion, type EstadoAccion } from '../../lib/tipos'
 import { useTitulaciones } from '../../lib/useTitulaciones'
+import { RevisionEstado } from './RevisionEstado'
 
 /** Colores de los estados en los gráficos (paleta validada; mismo significado que las insignias). */
 const COLOR_ESTADO: Record<EstadoAccion, string> = {
@@ -503,6 +504,8 @@ function Estadisticas({ acciones: todas }: { acciones: Accion[] }) {
 /** Consultas (administración): pendientes por responsable, consulta con filtros y estadísticas. */
 export function Consultas() {
   const { data: acciones = [], isLoading, error } = useTodasLasAcciones()
+  const [params, setParams] = useSearchParams()
+  const pestanya = params.get('tab') ?? 'pendientes'
   return (
     <Stack maw={1200}>
       <div>
@@ -513,15 +516,17 @@ export function Consultas() {
       {isLoading ? (
         <Skeleton h={400} />
       ) : (
-        <Tabs defaultValue="pendientes" keepMounted={false}>
+        <Tabs value={pestanya} onChange={(v) => setParams(v && v !== 'pendientes' ? { tab: v } : {}, { replace: true })} keepMounted={false}>
           <Tabs.List mb="md">
             <Tabs.Tab value="pendientes" leftSection={<IconListCheck size={16} />}>Pendientes por responsable</Tabs.Tab>
             <Tabs.Tab value="consulta" leftSection={<IconFilter size={16} />}>Consulta</Tabs.Tab>
             <Tabs.Tab value="estadisticas" leftSection={<IconChartBar size={16} />}>Estadísticas</Tabs.Tab>
+            <Tabs.Tab value="revision" leftSection={<IconClipboardCheck size={16} />}>Revisión del estado</Tabs.Tab>
           </Tabs.List>
           <Tabs.Panel value="pendientes"><PendientesPorResponsable acciones={acciones} /></Tabs.Panel>
           <Tabs.Panel value="consulta"><Consulta acciones={acciones} /></Tabs.Panel>
           <Tabs.Panel value="estadisticas"><Estadisticas acciones={acciones} /></Tabs.Panel>
+          <Tabs.Panel value="revision"><RevisionEstado acciones={acciones} /></Tabs.Panel>
         </Tabs>
       )}
     </Stack>

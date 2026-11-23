@@ -108,6 +108,8 @@ function Formulario({ accion, onClose }: { accion: Accion; onClose: () => void }
     await Promise.all([
       qc.invalidateQueries({ queryKey: ['acciones'] }),
       qc.invalidateQueries({ queryKey: ['historial', accion.id] }),
+      qc.invalidateQueries({ queryKey: ['estado_revision'] }),
+      qc.invalidateQueries({ queryKey: ['revisiones'] }),
     ])
     notifications.show({
       color: 'green',
