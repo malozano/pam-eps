@@ -14,7 +14,7 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 import { useAuth } from '../auth/AuthProvider'
 import { EstadoBadge } from '../components/EstadoBadge'
 import { estaInstalada } from '../components/Pwa'
-import { BadgePorRevisar, ProgresoRevision } from '../components/Revision'
+import { FONDO_POR_REVISAR, MarcaPorRevisar, ProgresoRevision } from '../components/Revision'
 import { SituacionBadge } from '../components/SituacionBadge'
 import { anyoPorDefecto, etiquetaCurso } from '../lib/cursos'
 import { fechaCorta } from '../lib/formato'
@@ -268,18 +268,21 @@ export function GestionPlan() {
               component={Link}
               to={`/gestion/${codigo}/accion/${a.id}`}
               opacity={a.cerrada ? 0.6 : 1}
+              bg={rev.porRevisar.has(a.id) ? FONDO_POR_REVISAR : undefined}
               style={{ color: 'inherit', textDecoration: 'none' }}
             >
-              <Group justify="space-between" wrap="nowrap" mb={4}>
+              <Group justify="space-between" wrap="nowrap" mb={4} align="flex-start">
                 <Text size="sm" ff="monospace">{a.codigo}</Text>
-                <EstadoBadge estado={a.estado} />
+                <div>
+                  <EstadoBadge estado={a.estado} />
+                  {rev.porRevisar.has(a.id) && <MarcaPorRevisar />}
+                </div>
               </Group>
               <Text size="sm" fw={500} lineClamp={3}>{a.nombre}</Text>
               <Text size="xs" c="dimmed" mt={4}>
                 {fechaCorta(a.fecha_inicio)} – {fechaCorta(a.fecha_fin)} · {a.responsable ?? 'Sin responsable'}
               </Text>
               <Group gap={4} mt={4}>
-                {rev.porRevisar.has(a.id) && <BadgePorRevisar />}
                 <SituacionBadge accion={a} />
                 {!a.es_mejora && <Badge size="xs" variant="outline" color="gray">No es acción de mejora</Badge>}
                 {a.cerrada && <Badge size="xs" variant="outline" color="gray">Cerrada</Badge>}
@@ -305,7 +308,12 @@ export function GestionPlan() {
               {filtradas.map((a) => {
                 const url = `/gestion/${codigo}/accion/${a.id}`
                 return (
-                  <Table.Tr key={a.id} opacity={a.cerrada ? 0.6 : 1} style={{ cursor: 'pointer' }} onClick={() => navigate(url)}>
+                  <Table.Tr
+                    key={a.id}
+                    opacity={a.cerrada ? 0.6 : 1}
+                    style={{ cursor: 'pointer', ...(rev.porRevisar.has(a.id) ? { background: FONDO_POR_REVISAR } : {}) }}
+                    onClick={() => navigate(url)}
+                  >
                     <Table.Td>
                       <Text size="sm" ff="monospace" style={{ whiteSpace: 'nowrap' }}>{a.codigo}</Text>
                       {a.anyo !== Number(curso) && curso !== 'todos' && (
@@ -315,8 +323,7 @@ export function GestionPlan() {
                     <Table.Td>
                       <Text size="sm" lineClamp={2}>{a.nombre}</Text>
                       <Group gap={4} mt={2}>
-                        {rev.porRevisar.has(a.id) && <BadgePorRevisar />}
-                        <SituacionBadge accion={a} />
+                                <SituacionBadge accion={a} />
                         {!a.es_mejora && <Badge size="xs" variant="outline" color="gray">No es acción de mejora</Badge>}
                         {a.cerrada && <Badge size="xs" variant="outline" color="gray">Cerrada</Badge>}
                       </Group>
@@ -324,7 +331,10 @@ export function GestionPlan() {
                     <Table.Td><Text size="sm">{a.responsable ?? '—'}</Text></Table.Td>
                     <Table.Td style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_inicio)}</Table.Td>
                     <Table.Td style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_fin)}</Table.Td>
-                    <Table.Td miw={130}><EstadoBadge estado={a.estado} /></Table.Td>
+                    <Table.Td miw={130}>
+                      <EstadoBadge estado={a.estado} />
+                      {rev.porRevisar.has(a.id) && <MarcaPorRevisar />}
+                    </Table.Td>
                     <Table.Td>
                       <Tooltip label="Editar">
                         <ActionIcon variant="subtle" component={Link} to={`${url}/editar`} aria-label={`Editar ${a.codigo}`} onClick={(e) => e.stopPropagation()}>

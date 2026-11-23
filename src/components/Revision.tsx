@@ -1,6 +1,6 @@
-import { Alert, Anchor, Badge, Button, Group, Paper, Progress, Stack, Text } from '@mantine/core'
+import { Alert, Anchor, Button, Group, Paper, Progress, Stack, Text } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { IconChecks, IconClipboardCheck } from '@tabler/icons-react'
+import { IconChecks, IconClipboardCheck, IconClockHour4 } from '@tabler/icons-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
@@ -20,7 +20,7 @@ export function ProgresoRevision({ revision, total, revisadas, children }: {
 }) {
   const pendientes = total - revisadas
   return (
-    <Paper withBorder p="sm" bg={pendientes ? 'var(--mantine-color-orange-light)' : 'var(--mantine-color-green-light)'}>
+    <Paper withBorder p="sm" bg={pendientes ? 'var(--mantine-color-blue-light)' : 'var(--mantine-color-green-light)'}>
       <Group justify="space-between" align="flex-start" gap="xs">
         <div style={{ flex: '1 1 320px' }}>
           <Group gap={6}>
@@ -35,7 +35,7 @@ export function ProgresoRevision({ revision, total, revisadas, children }: {
         {children}
       </Group>
       <Group gap="xs" mt="xs" wrap="nowrap">
-        <Progress value={total ? (revisadas / total) * 100 : 100} color={pendientes ? 'orange' : 'green'} style={{ flex: 1 }} aria-label="Progreso de la revisión" />
+        <Progress value={total ? (revisadas / total) * 100 : 100} color={pendientes ? 'blue' : 'green'} style={{ flex: 1 }} aria-label="Progreso de la revisión" />
         <Text size="sm" fw={500} style={{ whiteSpace: 'nowrap' }}>
           {pendientes ? `${revisadas} de ${total} revisadas` : total ? 'Todas revisadas' : 'Sin acciones que revisar'}
         </Text>
@@ -44,8 +44,17 @@ export function ProgresoRevision({ revision, total, revisadas, children }: {
   )
 }
 
-export function BadgePorRevisar() {
-  return <Badge size="xs" color="orange" variant="filled">Por revisar</Badge>
+/** Fondo de las filas de acciones pendientes de revisar */
+export const FONDO_POR_REVISAR = 'var(--mantine-color-blue-0)'
+
+/** Marca «Por revisar», debajo del estado (lo que hay que revisar es el estado). */
+export function MarcaPorRevisar() {
+  return (
+    <Group gap={4} wrap="nowrap" mt={4} c="blue.8">
+      <IconClockHour4 size={14} aria-hidden />
+      <Text size="xs" fw={500} c="blue.8" style={{ whiteSpace: 'nowrap' }}>Por revisar</Text>
+    </Group>
+  )
 }
 
 /** Botón para confirmar el estado actual de una acción (cuenta como revisada, sin más datos). */
@@ -69,7 +78,7 @@ export function BotonConfirmarEstado({ accion, size = 'sm' }: { accion: Pick<Acc
     }
   }
   return (
-    <Button size={size} variant="light" color="orange" leftSection={<IconChecks size={16} />} loading={enviando} onClick={confirmar} w="fit-content">
+    <Button size={size} variant="light" color="blue" leftSection={<IconChecks size={16} />} loading={enviando} onClick={confirmar} w="fit-content">
       Confirmar estado actual
     </Button>
   )
@@ -80,7 +89,7 @@ export function AvisoAccionPorRevisar({ accion }: { accion: Accion }) {
   const { revision, porRevisar } = usePorRevisar(accion.titulacion, accion.titulacion === 'CEN' ? 'centro' : 'titulaciones')
   if (!revision || !porRevisar.has(accion.id)) return null
   return (
-    <Alert color="orange" variant="light" icon={<IconClipboardCheck size={18} />} title="Pendiente de revisar">
+    <Alert color="blue" variant="light" icon={<IconClockHour4 size={18} />} title="Pendiente de revisar">
       <Stack gap="xs">
         <Text size="sm">
           {revision.titulo}. Si la acción ha avanzado, se ha completado o ha cambiado su plazo, usa «Registrar
@@ -153,7 +162,7 @@ export function AvisoRevisionInforme({ titulacion, acciones }: { titulacion: str
   if (!revision || !porRevisar.size) return null
   const lista = acciones.filter((a) => porRevisar.has(a.id))
   return (
-    <Alert color="orange" icon={<IconClipboardCheck size={18} />} title={`Quedan ${porRevisar.size === 1 ? '1 acción' : `${porRevisar.size} acciones`} por revisar`}>
+    <Alert color="blue" icon={<IconClockHour4 size={18} />} title={`Quedan ${porRevisar.size === 1 ? '1 acción' : `${porRevisar.size} acciones`} por revisar`}>
       <Text size="sm">
         {revision.titulo}. Antes de cerrar el informe, registra el seguimiento de estas acciones o confirma su estado actual
         si no han cambiado:

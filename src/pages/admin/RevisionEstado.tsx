@@ -108,11 +108,11 @@ function PorTitulacion({ filas, tits }: { filas: { titulacion: string; revisada:
                 <Text size="xs" c="dimmed" lineClamp={1}>{tits.find((x) => x.codigo === t)?.nombre}</Text>
               </Table.Td>
               <Table.Td>
-                <Progress value={(c.revisadas / c.total) * 100} color={c.revisadas === c.total ? 'green' : 'orange'} aria-label={`Progreso de ${t}`} />
+                <Progress value={(c.revisadas / c.total) * 100} color={c.revisadas === c.total ? 'green' : 'blue'} aria-label={`Progreso de ${t}`} />
               </Table.Td>
               <Table.Td ta="right">{c.revisadas} de {c.total}</Table.Td>
               <Table.Td ta="right">
-                {c.total - c.revisadas ? <Badge color="orange">{c.total - c.revisadas}</Badge> : <Badge color="green" variant="light">Completa</Badge>}
+                {c.total - c.revisadas ? <Badge color="blue">{c.total - c.revisadas}</Badge> : <Badge color="green" variant="light">Completa</Badge>}
               </Table.Td>
             </Table.Tr>
           ))}
@@ -135,7 +135,7 @@ function PorResponsable({ pendientes }: { pendientes: Accion[] }) {
           <Group justify="space-between">
             <Group gap="xs">
               <Text fw={500} size="sm">{g.responsable}</Text>
-              <Badge color="orange">{g.acciones.length}</Badge>
+              <Badge color="blue">{g.acciones.length}</Badge>
             </Group>
             <CopyButton value={textoListado(g, urlApp(), undefined, 'Acciones por revisar')}>
               {({ copied, copy }) => (

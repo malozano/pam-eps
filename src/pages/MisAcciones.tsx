@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { EstadoBadge } from '../components/EstadoBadge'
 import { SituacionBadge } from '../components/SituacionBadge'
-import { BadgePorRevisar, ProgresoRevision } from '../components/Revision'
+import { FONDO_POR_REVISAR, MarcaPorRevisar, ProgresoRevision } from '../components/Revision'
 import { SugerenciaNotificaciones } from '../components/SugerenciaNotificaciones'
 import { anyoPorDefecto, etiquetaCurso } from '../lib/cursos'
 import { fechaCorta } from '../lib/formato'
@@ -22,14 +22,13 @@ function TablaAcciones({ acciones, verResponsable, porRevisar }: { acciones: Acc
       <Table verticalSpacing={6} fz="sm" highlightOnHover>
         <Table.Tbody>
           {acciones.map((a) => (
-            <Table.Tr key={a.id}>
+            <Table.Tr key={a.id} style={porRevisar.has(a.id) ? { background: FONDO_POR_REVISAR } : undefined}>
               <Table.Td w={150} style={{ verticalAlign: 'top' }}>
                 <Anchor component={Link} to={`/gestion/CEN/accion/${a.id}`} ff="monospace" size="sm">{a.codigo}</Anchor>
               </Table.Td>
               <Table.Td>
                 <Text size="sm" lineClamp={2}>{a.nombre}</Text>
                 <Group gap={4} mt={2}>
-                  {porRevisar.has(a.id) && <BadgePorRevisar />}
                   <SituacionBadge accion={a} />
                   {verResponsable && a.responsable && <Badge size="xs" variant="outline" color="gray" tt="none">{a.responsable}</Badge>}
                 </Group>
@@ -37,7 +36,10 @@ function TablaAcciones({ acciones, verResponsable, porRevisar }: { acciones: Acc
               <Table.Td w={190} style={{ whiteSpace: 'nowrap', verticalAlign: 'top' }}>
                 {fechaCorta(a.fecha_inicio)} – {fechaCorta(a.fecha_fin)}
               </Table.Td>
-              <Table.Td w={120} style={{ verticalAlign: 'top' }}><EstadoBadge estado={a.estado} /></Table.Td>
+              <Table.Td w={120} style={{ verticalAlign: 'top' }}>
+                <EstadoBadge estado={a.estado} />
+                {porRevisar.has(a.id) && <MarcaPorRevisar />}
+              </Table.Td>
             </Table.Tr>
           ))}
         </Table.Tbody>
