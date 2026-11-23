@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
-import { AvisoRevisionesAdmin, AvisoRevisionInicio } from '../components/Revision'
+import { AvisoRevisionesAdmin, AvisoRevisionInicio, FONDO_POR_REVISAR, MarcaPorRevisar } from '../components/Revision'
 import { SeguimientosPorRevisar } from '../components/SeguimientosPorRevisar'
 import { SugerenciaNotificaciones } from '../components/SugerenciaNotificaciones'
 import { EstadoBadge } from '../components/EstadoBadge'
@@ -15,6 +15,7 @@ import { fechaCorta } from '../lib/formato'
 import { ESTADOS_ABIERTOS, situacion, type Situacion } from '../lib/seguimiento'
 import { supabase } from '../lib/supabase'
 import type { Accion } from '../lib/tipos'
+import { usePorRevisar } from '../lib/revision'
 import { useTitulaciones } from '../lib/useTitulaciones'
 import { MisAcciones } from './MisAcciones'
 
@@ -53,6 +54,10 @@ function InicioGestion() {
   const { data, isLoading } = useTitulaciones()
   const { data: abiertas = [], isLoading: cargandoAcciones } = useAccionesAbiertas()
   const [alcance, setAlcance] = useState<'centro' | 'todos'>('centro')
+  // Acciones pendientes de la revisión del estado en curso (misma marca que en el plan)
+  const revCentro = usePorRevisar(null, 'centro')
+  const revTitulaciones = usePorRevisar(null, 'titulaciones')
+  const porRevisar = (id: string) => revCentro.porRevisar.has(id) || revTitulaciones.porRevisar.has(id)
   const mias = (data ?? []).filter((tit) => tit.activa && (esAdmin || titulaciones.includes(tit.codigo)))
 
   const conSituacion = useMemo(
@@ -126,7 +131,7 @@ function InicioGestion() {
                 {atencion.map((a) => (
                   <Table.Tr
                     key={a.id}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', ...(porRevisar(a.id) ? { background: FONDO_POR_REVISAR } : {}) }}
                     onClick={() => navigate(`/gestion/${a.titulacion}/accion/${a.id}`)}
                   >
                     <Table.Td>
@@ -138,7 +143,10 @@ function InicioGestion() {
                     </Table.Td>
                     <Table.Td style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_inicio)}</Table.Td>
                     <Table.Td style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_fin)}</Table.Td>
-                    <Table.Td miw={130}><EstadoBadge estado={a.estado} /></Table.Td>
+                    <Table.Td miw={130}>
+                      <EstadoBadge estado={a.estado} />
+                      {porRevisar(a.id) && <MarcaPorRevisar />}
+                    </Table.Td>
                   </Table.Tr>
                 ))}
               </Table.Tbody>
