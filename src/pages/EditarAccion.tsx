@@ -1,5 +1,5 @@
 import {
-  Alert, Anchor, Autocomplete, Badge, Button, Collapse, Group, NumberInput, Paper, Select, SimpleGrid, Skeleton,
+  Alert, Anchor, Badge, Button, Collapse, Group, NumberInput, Paper, Select, SimpleGrid, Skeleton,
   Stack, Switch, Text, Textarea, Title, UnstyledButton,
 } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
@@ -13,6 +13,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { EstadoBadge } from '../components/EstadoBadge'
 import { IndicadoresInput } from '../components/IndicadoresInput'
+import { OrigenInput } from '../components/OrigenInput'
 import { anyoPorDefecto, anyosSeleccionables, etiquetaCurso } from '../lib/cursos'
 import { supabase } from '../lib/supabase'
 import type { Accion } from '../lib/tipos'
@@ -31,19 +32,6 @@ interface Valores {
   es_mejora: boolean
   presupuesto: number | string
   observaciones: string
-}
-
-function origenesSugeridos(anyo: number): string[] {
-  const c = etiquetaCurso(anyo)
-  const ant = etiquetaCurso(anyo - 1)
-  return [
-    `Informe de seguimiento (CEN19) de primer semestre de ${ant}`,
-    `Informe de seguimiento (CEN19) de segundo semestre de ${ant}`,
-    `Informe de seguimiento (CEN19) de primer semestre de ${c}`,
-    `Informe anual de seguimiento (CEN10) de ${ant}`,
-    'Recomendaciones de informe externo (verificación, seguimiento o acreditación)',
-    'Problemática detectada durante el curso',
-  ]
 }
 
 const nulo = (s: string) => (s.trim() === '' ? null : s.trim())
@@ -122,10 +110,6 @@ export function EditarAccion() {
   }, [sucio])
 
   const indicadoresUsados = useMemo(() => acciones.flatMap((a) => a.indicadores), [acciones])
-  const origenes = useMemo(() => {
-    const usados = acciones.map((a) => a.origen).filter((x): x is string => !!x)
-    return Array.from(new Set([...origenesSugeridos(Number(form.values.anyo)), ...usados]))
-  }, [acciones, form.values.anyo])
   const opcionesResponsable = useMemo(() => {
     const actual = form.values.responsable
     return actual && !responsables.includes(actual) ? [...responsables, actual] : responsables
@@ -300,11 +284,12 @@ export function EditarAccion() {
                 usados={indicadoresUsados}
                 {...form.getInputProps('indicadores')}
               />
-              <Autocomplete
-                label="Origen o problema"
-                description="Informe del que surge la acción o problema que resuelve"
-                data={origenes}
-                {...form.getInputProps('origen')}
+              <OrigenInput
+                anyo={Number(form.values.anyo)}
+                esCentro={codigo === 'CEN'}
+                value={form.values.origen}
+                onChange={(v) => form.setFieldValue('origen', v)}
+                error={form.errors.origen}
               />
             </Stack>
           </Paper>
