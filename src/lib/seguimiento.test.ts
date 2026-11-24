@@ -33,7 +33,8 @@ describe('situacion', () => {
     expect(situacion(a('pendiente', '2026-11-20', '2027-06-30'), hoy)).toBe('sin_iniciar'))
   it('próxima si empieza en los próximos 30 días', () => {
     expect(situacion(a('pendiente', '2026-12-20', '2027-01-31'), hoy)).toBe('proxima')
-    expect(situacion(a('pendiente', '2026-12-21', '2027-01-31'), hoy)).toBe('en_plazo')
+    expect(situacion(a('pendiente', '2026-12-21', '2027-01-31'), hoy)).toBe('futura')
+    expect(situacion(a('en_proceso', '2026-12-21', '2027-06-30'), hoy)).toBe('en_plazo') // empezada antes de tiempo
   })
   it('en proceso dentro de plazo', () => expect(situacion(a('en_proceso', '2026-09-01', '2027-06-30'), hoy)).toBe('en_plazo'))
   it('sin fechas', () => expect(situacion(a('pendiente', null, null), hoy)).toBe('en_plazo'))

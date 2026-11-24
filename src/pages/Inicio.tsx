@@ -58,7 +58,7 @@ function InicioGestion() {
   const contadores = useMemo(() => {
     const m = new Map<string, Record<Situacion | 'en_proceso', number>>()
     for (const a of conSituacion) {
-      const c = m.get(a.titulacion) ?? { vencida: 0, vence_pronto: 0, sin_iniciar: 0, proxima: 0, en_plazo: 0, finalizada: 0, en_proceso: 0 }
+      const c = m.get(a.titulacion) ?? { vencida: 0, vence_pronto: 0, sin_iniciar: 0, proxima: 0, en_plazo: 0, futura: 0, finalizada: 0, en_proceso: 0 }
       c[a.situacion]++
       if (a.estado === 'en_proceso') c.en_proceso++
       m.set(a.titulacion, c)
@@ -68,7 +68,7 @@ function InicioGestion() {
 
   // El administrador ve por defecto solo las alertas del plan del centro
   const atencion = conSituacion
-    .filter((a) => a.situacion !== 'en_plazo' && (!esAdmin || alcance === 'todos' || a.titulacion === 'CEN'))
+    .filter((a) => a.situacion !== 'futura' && (!esAdmin || alcance === 'todos' || a.titulacion === 'CEN'))
     .sort((a, b) => compararPorUrgencia(a, b))
 
   return (
@@ -95,11 +95,15 @@ function InicioGestion() {
             />
           )}
         </Group>
+        <Text size="xs" c="dimmed" mt={-6}>
+          Acciones abiertas, de más a menos urgentes: vencidas, que vencen en los próximos 60 días, que deberían haber
+          empezado, que empiezan en los próximos 30 días y en plazo. Solo se omiten las que empiezan más adelante.
+        </Text>
         {cargandoAcciones ? (
           <Skeleton h={80} />
         ) : atencion.length === 0 ? (
           <Alert color="green" variant="light">
-            No hay acciones vencidas, que venzan en los próximos 60 días, sin iniciar ni próximas a empezar.
+            No hay acciones abiertas (salvo, si las hay, las que empiezan dentro de más de un mes).
           </Alert>
         ) : (
           <ListaAcciones acciones={atencion} minWidth={700} />

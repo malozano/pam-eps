@@ -134,6 +134,7 @@ const SITUACIONES: { value: Situacion; label: string }[] = [
   { value: 'sin_iniciar', label: 'Debería haber empezado' },
   { value: 'proxima', label: 'Empieza pronto' },
   { value: 'en_plazo', label: 'En plazo' },
+  { value: 'futura', label: 'Empieza más adelante' },
   { value: 'finalizada', label: 'Completada o cancelada' },
 ]
 

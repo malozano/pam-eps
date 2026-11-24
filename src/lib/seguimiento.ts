@@ -23,7 +23,8 @@ export type Situacion =
   | 'vence_pronto' //  abierta y con la fecha de fin en los próximos `diasFin` días (60)
   | 'sin_iniciar' //   pendiente y con la fecha de inicio ya alcanzada
   | 'proxima' //       pendiente y empieza en los próximos `diasAviso` días
-  | 'en_plazo' //      abierta y sin nada que destacar
+  | 'en_plazo' //      abierta y en marcha (o sin fecha de inicio) sin nada urgente
+  | 'futura' //        pendiente que empieza dentro de más de `diasAviso` días
   | 'finalizada' //    completada o cancelada
 
 /** Días antes de la fecha de fin en que una acción abierta se destaca como «Vence pronto». */
@@ -52,6 +53,7 @@ export function situacion(
   if (a.estado === 'pendiente' && a.fecha_inicio) {
     if (a.fecha_inicio <= hoy) return 'sin_iniciar'
     if (a.fecha_inicio <= sumarDias(hoy, diasAviso)) return 'proxima'
+    return 'futura'
   }
   return 'en_plazo'
 }
@@ -67,7 +69,7 @@ export function diasHasta(iso: string, hoy: string = hoyISO()): number {
 
 /** Orden de prioridad de las situaciones en todos los listados (lo más urgente primero). */
 export const ORDEN_SITUACION: Record<Situacion, number> = {
-  vencida: 0, vence_pronto: 1, sin_iniciar: 2, proxima: 3, en_plazo: 4, finalizada: 5,
+  vencida: 0, vence_pronto: 1, sin_iniciar: 2, proxima: 3, en_plazo: 4, futura: 5, finalizada: 6,
 }
 
 /** Compara dos acciones: situación más urgente primero, después fecha de fin y código. */

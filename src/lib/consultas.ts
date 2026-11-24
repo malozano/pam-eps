@@ -16,7 +16,7 @@ export interface FiltrosConsulta {
   anyos: number[] //          curso de la acción; vacío = todos
   estados: EstadoAccion[]
   responsables: string[]
-  situaciones: Situacion[] // vencida, vence_pronto, sin_iniciar, proxima, en_plazo, finalizada
+  situaciones: Situacion[] // vencida, vence_pronto, sin_iniciar, proxima, en_plazo, futura, finalizada
   texto: string
   /** Rango de fechas: acciones activas en algún momento del rango (inicio ≤ hasta y fin ≥ desde) */
   desde: string | null

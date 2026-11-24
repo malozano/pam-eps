@@ -7,6 +7,7 @@ const INFO: Partial<Record<Situacion, { texto: string; color: string }>> = {
   vence_pronto: { texto: 'Vence pronto', color: 'orange' },
   sin_iniciar: { texto: 'Debería haber empezado', color: 'grape' },
   proxima: { texto: 'Empieza pronto', color: 'yellow' },
+  en_plazo: { texto: 'En plazo', color: 'green' },
 }
 
 /** Aviso de plazos de una acción abierta (no muestra nada si está en plazo o finalizada). */
@@ -25,12 +26,16 @@ export function SituacionBadge({ accion }: { accion: Pick<Accion, 'estado' | 'fe
           })()
       : s === 'sin_iniciar' && accion.fecha_inicio
         ? `Debía empezar hace ${-diasHasta(accion.fecha_inicio)} días y sigue pendiente`
-        : accion.fecha_inicio
-          ? `Empieza en ${diasHasta(accion.fecha_inicio)} días`
-          : ''
+        : s === 'en_plazo'
+          ? accion.fecha_fin
+            ? `Quedan ${diasHasta(accion.fecha_fin)} días para la fecha de fin`
+            : 'Sin fecha de fin'
+          : accion.fecha_inicio
+            ? `Empieza en ${diasHasta(accion.fecha_inicio)} días`
+            : ''
   return (
     <Tooltip label={detalle} disabled={!detalle}>
-      <Badge size="xs" color={info.color} variant="filled" style={{ overflow: 'visible' }}>
+      <Badge size="xs" color={info.color} variant={s === 'en_plazo' ? 'light' : 'filled'} style={{ overflow: 'visible' }}>
         {info.texto}
       </Badge>
     </Tooltip>
