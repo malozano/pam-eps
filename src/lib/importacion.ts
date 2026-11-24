@@ -8,9 +8,10 @@ import { esCodigo, separarIndicadores } from './indicadores'
 import type { EstadoAccion } from './tipos'
 
 export interface AccionImportable {
-  codigo: string
+  /** null: sin código en el Excel; la base de datos asigna el siguiente número del curso */
+  codigo: string | null
   anyo: number
-  numero: number
+  numero: number | null
   nombre: string
   tareas: string | null
   responsable: string | null
@@ -38,6 +39,8 @@ export interface FilaAnalizada {
   avisos: string[]
   /** true si ya existe una acción con este código en la titulación */
   existente: boolean
+  /** Filas sin código: código que se asignará al importar (lo calcula cruzarConExistentes) */
+  codigoAsignado?: string
 }
 
 export interface AnalisisExcel {
@@ -54,6 +57,8 @@ export interface ContextoImportacion {
   responsables: string[]
   /** Códigos del catálogo de indicadores (para avisar de códigos desconocidos) */
   indicadores?: string[]
+  /** Curso de las acciones sin código (año de inicio); sin él, el código es obligatorio */
+  anyoSinCodigo?: number
 }
 
 type Campo =
@@ -220,9 +225,10 @@ export function analizarFilas(filas: unknown[][], ctx: ContextoImportacion): Ana
     // Código
     const codigo = (texto(celda(f, 'codigo')) ?? '').toUpperCase().replace(/\s/g, '')
     const partes = parsearCodigo(codigo)
-    if (!codigo) errores.push('Falta el código')
-    else if (!partes) errores.push(`Código «${codigo}» con formato no válido (AM-<titulación>-<año>-<nn>)`)
-    else if (partes.prefijo !== ctx.titulacion) {
+    const sinCodigo = !codigo && ctx.anyoSinCodigo !== undefined
+    if (!codigo && !sinCodigo) errores.push('Falta el código')
+    else if (codigo && !partes) errores.push(`Código «${codigo}» con formato no válido (AM-<titulación>-<año>-<nn>)`)
+    else if (partes && partes.prefijo !== ctx.titulacion) {
       if (ctx.codigosTitulaciones.includes(partes.prefijo))
         errores.push(`El código pertenece a otra titulación (${partes.prefijo})`)
       else avisos.push(`Código antiguo con prefijo «${partes.prefijo}»: se conservará tal cual`)
@@ -273,11 +279,11 @@ export function analizarFilas(filas: unknown[][], ctx: ContextoImportacion): Ana
     if (cerrada === undefined) avisos.push('Valor no reconocido en «Cerrada»: se marcará como no cerrada')
 
     const datos: AccionImportable | null =
-      errores.length === 0 && partes && nombre && est
+      errores.length === 0 && (partes || sinCodigo) && nombre && est
         ? {
-            codigo,
-            anyo: partes.anyo,
-            numero: partes.numero,
+            codigo: partes ? codigo : null,
+            anyo: partes ? partes.anyo : ctx.anyoSinCodigo!,
+            numero: partes ? partes.numero : null,
             nombre,
             tareas: texto(celda(f, 'tareas')),
             responsable: responsable
@@ -305,17 +311,48 @@ export interface AccionExistente {
   codigo: string
   anyo: number
   numero: number
+  nombre?: string
 }
 
 /**
  * Cruza el análisis con las acciones que ya existen en la titulación: marca las existentes
  * (mismo código) y da error si el año y número coinciden con otra acción de distinto código.
+ * A las filas sin código les calcula el código que se asignará: continúan después del último
+ * número del curso (`siguiente`, que tiene en cuenta los números borrados) y de los números con
+ * código del propio fichero, en el orden del fichero. Avisa si ya hay una acción con el mismo nombre.
  */
-export function cruzarConExistentes(filas: FilaAnalizada[], existentes: AccionExistente[]): FilaAnalizada[] {
+export function cruzarConExistentes(
+  filas: FilaAnalizada[],
+  existentes: AccionExistente[],
+  numeracion?: { titulacion: string; siguiente: Record<number, number> },
+): FilaAnalizada[] {
   const porCodigo = new Set(existentes.map((e) => e.codigo))
   const porNumero = new Map(existentes.map((e) => [`${e.anyo}-${e.numero}`, e.codigo]))
+  const porNombre = new Map(existentes.filter((e) => e.nombre).map((e) => [normalizar(e.nombre!), e.codigo]))
+  // último número ocupado por curso: contador de la base de datos, existentes y códigos del fichero
+  const ultimo = new Map<number, number>()
+  const subir = (anyo: number, n: number) => ultimo.set(anyo, Math.max(ultimo.get(anyo) ?? 0, n))
+  for (const [anyo, sig] of Object.entries(numeracion?.siguiente ?? {})) subir(Number(anyo), sig - 1)
+  for (const e of existentes) subir(e.anyo, e.numero)
+  for (const f of filas) if (f.datos?.numero) subir(f.datos.anyo, f.datos.numero)
+  const nombresFichero = new Map<string, number>()
+
   return filas.map((f) => {
     if (!f.datos) return f
+    if (f.datos.codigo === null) {
+      const avisos = [...f.avisos]
+      const igual = porNombre.get(normalizar(f.datos.nombre))
+      if (igual) avisos.push(`Ya existe una acción con el mismo nombre (${igual}): se creará otra`)
+      const repetida = nombresFichero.get(normalizar(f.datos.nombre))
+      if (repetida) avisos.push(`Mismo nombre que la fila ${repetida} del fichero`)
+      nombresFichero.set(normalizar(f.datos.nombre), f.fila)
+      const n = (ultimo.get(f.datos.anyo) ?? 0) + 1
+      ultimo.set(f.datos.anyo, n)
+      const codigoAsignado = numeracion
+        ? `AM-${numeracion.titulacion}-${f.datos.anyo}-${String(n).padStart(2, '0')}`
+        : undefined
+      return { ...f, avisos, codigoAsignado }
+    }
     if (porCodigo.has(f.codigo)) return { ...f, existente: true }
     const otro = porNumero.get(`${f.datos.anyo}-${f.datos.numero}`)
     if (otro)
@@ -326,6 +363,11 @@ export function cruzarConExistentes(filas: FilaAnalizada[], existentes: AccionEx
       }
     return f
   })
+}
+
+/** Orden de envío: primero las filas con código, para que las sin código se numeren después. */
+export function ordenEnvio<T extends { datos: AccionImportable | null }>(filas: T[]): T[] {
+  return [...filas.filter((f) => f.datos?.codigo !== null), ...filas.filter((f) => f.datos?.codigo === null)]
 }
 
 export function resultadoFila(f: FilaAnalizada, actualizar: boolean): Resultado {

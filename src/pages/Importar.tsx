@@ -1,18 +1,18 @@
 import {
-  Alert, Anchor, Badge, Button, FileInput, Group, List, Paper, SegmentedControl, Stack, Switch, Table, Text, Title,
+  Alert, Anchor, Badge, Button, FileInput, Group, List, Paper, SegmentedControl, Select, Stack, Switch, Table, Text, Title, Tooltip,
 } from '@mantine/core'
 import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
 import { IconFileSpreadsheet } from '@tabler/icons-react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { EstadoBadge } from '../components/EstadoBadge'
-import { etiquetaCurso } from '../lib/cursos'
+import { anyoPorDefecto, anyosSeleccionables, etiquetaCurso } from '../lib/cursos'
 import { fechaCorta } from '../lib/formato'
 import {
-  analizarFilas, cruzarConExistentes, leerExcel, resultadoFila, type AnalisisExcel, type Resultado,
+  analizarFilas, cruzarConExistentes, leerExcel, ordenEnvio, resultadoFila, type AnalisisExcel, type Resultado,
 } from '../lib/importacion'
 import { supabase } from '../lib/supabase'
 import { useAccionesTitulacion, useCatalogoIndicadores, useResponsables } from '../lib/useCatalogos'
@@ -46,6 +46,16 @@ export function Importar() {
   const [actualizar, setActualizar] = useState(false)
   const [filtro, setFiltro] = useState<Filtro>('todas')
   const [importando, setImportando] = useState(false)
+  // Curso de las acciones sin código (por defecto, el actual, como al crear una acción)
+  const [anyoSinCodigo, setAnyoSinCodigo] = useState(anyoPorDefecto())
+  const { data: siguiente } = useQuery({
+    queryKey: ['siguiente_numero', codigo, anyoSinCodigo],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('siguiente_numero', { p_titulacion: codigo, p_anyo: anyoSinCodigo })
+      if (error) throw error
+      return (data as number | null) ?? 1
+    },
+  })
   const { data: catalogo } = useCatalogoIndicadores()
 
   // El análisis se recalcula si cambian los catálogos o las acciones existentes
@@ -57,21 +67,30 @@ export function Importar() {
             codigosTitulaciones: titulaciones.map((t) => t.codigo),
             responsables,
             indicadores: catalogo?.indicadores.map((i) => i.codigo),
+            anyoSinCodigo,
           })
         : null,
-    [datosExcel, codigo, titulaciones, responsables, catalogo],
+    [datosExcel, codigo, titulaciones, responsables, catalogo, anyoSinCodigo],
   )
   const errorAnalisis =
     analisisCompleto?.error ?? (analisisCompleto && analisisCompleto.filas.length === 0 ? 'El fichero no contiene acciones.' : null)
   const analisis = errorAnalisis ? null : analisisCompleto
   const filas = useMemo(
-    () => (analisis ? cruzarConExistentes(analisis.filas, existentes) : []),
-    [analisis, existentes],
+    () =>
+      analisis
+        ? cruzarConExistentes(analisis.filas, existentes, {
+            titulacion: codigo,
+            siguiente: siguiente ? { [anyoSinCodigo]: siguiente } : {},
+          })
+        : [],
+    [analisis, existentes, codigo, siguiente, anyoSinCodigo],
   )
+  const sinCodigo = filas.filter((f) => !f.codigo)
   const resultados = filas.map((f) => resultadoFila(f, actualizar))
   const cuenta = (r: Resultado) => resultados.filter((x) => x === r).length
   const conAvisos = filas.filter((f) => f.avisos.length > 0).length
-  const aEnviar = filas.filter((_, i) => resultados[i] === 'nueva' || resultados[i] === 'actualizar')
+  // primero las que tienen código, para que las demás se numeren a continuación
+  const aEnviar = ordenEnvio(filas.filter((_, i) => resultados[i] === 'nueva' || resultados[i] === 'actualizar'))
 
   if (!esAdmin && !mias.includes(codigo)) return <Navigate to="/" replace />
   const tit = titulaciones.find((t) => t.codigo === codigo)
@@ -134,6 +153,12 @@ export function Importar() {
           </Text>
           <List size="sm">
             <List.Item>{nuevas === 1 ? '1 acción nueva' : `${nuevas} acciones nuevas`}</List.Item>
+            {sinCodigo.some((f) => f.codigoAsignado) && (
+              <List.Item>
+                {sinCodigo.length === 1 ? '1 sin código recibirá' : `${sinCodigo.length} sin código recibirán`} código del
+                curso {etiquetaCurso(anyoSinCodigo)}: {sinCodigo.filter((f) => f.codigoAsignado).map((f) => f.codigoAsignado).join(', ')}
+              </List.Item>
+            )}
             {act > 0 && (
               <List.Item>
                 <b>{act} acciones existentes se sobrescribirán</b> con los datos del Excel
@@ -196,6 +221,24 @@ export function Importar() {
             <Badge size="lg" color="red" variant="light">{cuenta('error')} con errores</Badge>
             <Badge size="lg" color="yellow" variant="light">{conAvisos} con avisos</Badge>
           </Group>
+          {sinCodigo.length > 0 && (
+            <Alert color="blue" variant="light" title={`${sinCodigo.length === 1 ? '1 acción' : `${sinCodigo.length} acciones`} sin código`}>
+              <Group align="flex-end" gap="md">
+                <Text size="sm" style={{ flex: '1 1 320px' }}>
+                  Se les asignará el código automáticamente, a continuación del último número del curso en este plan (los
+                  números de acciones borradas no se reutilizan), en el orden del fichero. Elige el curso al que corresponden:
+                </Text>
+                <Select
+                  label="Curso de las acciones sin código"
+                  w={240}
+                  allowDeselect={false}
+                  value={String(anyoSinCodigo)}
+                  onChange={(v) => v && setAnyoSinCodigo(Number(v))}
+                  data={anyosSeleccionables().map((a) => ({ value: String(a), label: etiquetaCurso(a) }))}
+                />
+              </Group>
+            </Alert>
+          )}
           {analisis.columnasIgnoradas.length > 0 && (
             <Text size="sm" c="dimmed">Columnas ignoradas: {analisis.columnasIgnoradas.join(', ')}</Text>
           )}
@@ -237,7 +280,13 @@ export function Importar() {
                   <Table.Tr key={f.fila} bg={r === 'error' ? 'var(--mantine-color-red-light)' : undefined}>
                     <Table.Td>{f.fila}</Table.Td>
                     <Table.Td>
-                      <Text size="sm" ff="monospace" style={{ whiteSpace: 'nowrap' }}>{f.codigo || '—'}</Text>
+                      {f.codigo || !f.codigoAsignado ? (
+                        <Text size="sm" ff="monospace" style={{ whiteSpace: 'nowrap' }}>{f.codigo || '—'}</Text>
+                      ) : (
+                        <Tooltip label="Código que se asignará al importar">
+                          <Text size="sm" ff="monospace" c="blue.8" fs="italic" style={{ whiteSpace: 'nowrap' }}>{f.codigoAsignado}</Text>
+                        </Tooltip>
+                      )}
                     </Table.Td>
                     <Table.Td maw={380}>
                       <Text size="sm" lineClamp={2}>{f.nombre ?? ''}</Text>

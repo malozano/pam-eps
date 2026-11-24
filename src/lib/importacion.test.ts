@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs'
 import { describe, expect, it } from 'vitest'
 import {
-  analizarFilas, booleano, cruzarConExistentes, estado, fecha, importe, leerExcel, resultadoFila, valorCelda,
+  analizarFilas, booleano, cruzarConExistentes, estado, fecha, importe, leerExcel, ordenEnvio, resultadoFila, valorCelda,
 } from './importacion'
 
 const ctx = {
@@ -206,5 +206,34 @@ describe('leerExcel', () => {
       nombre: 'Acción enriquecida', fecha_inicio: '2025-09-01', fecha_fin: '2025-12-31', estado: 'en_proceso',
       presupuesto: 1500, es_mejora: true, observaciones: 'Hecho', cerrada: false,
     })
+  })
+})
+
+describe('acciones sin código', () => {
+  const filas = [
+    CABECERA,
+    [null, 'Sin código A'],
+    ['AM-D110-2026-07', 'Con código'],
+    ['', 'Ya existe con este nombre'],
+    [null, 'Sin código A'],
+  ]
+  it('sin curso elegido, el código es obligatorio', () => {
+    expect(analizarFilas(filas, ctx).filas[0].errores).toEqual(['Falta el código'])
+  })
+  it('se numeran a continuación del último número (contador, existentes y fichero)', () => {
+    const a = analizarFilas(filas, { ...ctx, anyoSinCodigo: 2026 })
+    expect(a.filas[0].datos).toMatchObject({ codigo: null, anyo: 2026, numero: null })
+    const c = cruzarConExistentes(
+      a.filas,
+      [{ codigo: 'AM-D110-2026-03', anyo: 2026, numero: 3, nombre: 'Ya existe con este nombre' }],
+      { titulacion: 'D110', siguiente: { 2026: 5 } }, // el 4 se borró
+    )
+    expect(c.map((f) => f.codigoAsignado ?? f.codigo)).toEqual([
+      'AM-D110-2026-08', 'AM-D110-2026-07', 'AM-D110-2026-09', 'AM-D110-2026-10',
+    ])
+    expect(c[2].avisos).toContain('Ya existe una acción con el mismo nombre (AM-D110-2026-03): se creará otra')
+    expect(c[3].avisos).toContain('Mismo nombre que la fila 2 del fichero')
+    expect(c.map((f) => resultadoFila(f, false))).toEqual(['nueva', 'nueva', 'nueva', 'nueva'])
+    expect(ordenEnvio(c).map((f) => f.nombre)).toEqual(['Con código', 'Sin código A', 'Ya existe con este nombre', 'Sin código A'])
   })
 })

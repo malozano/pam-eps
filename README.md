@@ -14,7 +14,7 @@ de la Escuela Politécnica Superior (y el plan transversal del centro, código `
 |---|---|---|
 | 0 | Repositorio, proyecto Supabase, despliegue | ✅ (pendiente de conectar los servicios reales) |
 | 1 | Esquema de BD, código automático, historial, RLS, acceso, gestión de usuarios | ✅ |
-| 2 | Importación de Excel con vista previa (atómica, detecta errores y códigos antiguos) | ✅ |
+| 2 | Importación de Excel con vista previa (atómica, detecta errores y códigos antiguos; las filas sin código se numeran a continuación en el curso elegido) | ✅ |
 | 3 | Gestión de acciones (listado con filtros, alta con código automático, edición, borrado) y avisos de plazos en el inicio | ✅ |
 | 4 | Seguimiento: ficha con historial, cambios de estado con observaciones/evidencias/fechas, informe CEN19 y cierre de acciones reportadas | ✅ |
 | 5 | Vista pública por titulación/curso (`/plan/<código>/<año>`, castellano/valenciano) y exportación a Excel (formato común, reimportable) | ✅ |
@@ -34,7 +34,8 @@ de la Escuela Politécnica Superior (y el plan transversal del centro, código `
 - `acciones`: una fila por acción. `anyo` es el año de inicio del curso (2026 ⇒ 2026-27).
   El código `AM-<titulación>-<año>-<nn>` se genera automáticamente al dar de alta; los
   números de acciones borradas no se reutilizan. Las acciones importadas conservan su
-  código original (p. ej. `AM-MUDSDM-2023-01`).
+  código original (p. ej. `AM-MUDSDM-2023-01`); las que llegan sin código se numeran a
+  continuación del último número del curso elegido en la importación.
 - `historial`: alta y cambios de estado, con observaciones, evidencias y usuario.
 - `procedimientos` y `catalogo_indicadores`: indicadores con código del Sistema de Calidad
   (documento «Indicadores por procedimiento», V04 sep. 2026), agrupados por procedimiento.
