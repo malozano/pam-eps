@@ -1,6 +1,8 @@
 // Pruebas del resumen mensual por correo (módulo de la Edge Function «enviar-avisos»)
 import { describe, expect, it } from 'vitest'
-import { bloquesPara, prioridad, redactarResumen, textoPlazo, type AccionR } from '../../supabase/functions/enviar-avisos/resumen'
+import { bloquesPara, NIVELES, prioridad, redactarResumen, textoPlazo, type AccionR } from '../../supabase/functions/enviar-avisos/resumen'
+import { GRUPOS_SITUACION, situacion } from './seguimiento'
+import type { EstadoAccion } from './tipos'
 
 const HOY = '2026-11-15'
 let n = 0
@@ -25,10 +27,10 @@ const nombre = (c: string) => ({ C203: 'Grado en Ingeniería Civil', D110: 'Más
 
 describe('resumen mensual', () => {
   it('prioridades y plazos', () => {
-    expect(acciones.map((x) => prioridad(x, HOY))).toEqual(['vencida', 'vence_pronto', 'en_curso', 'futura', null, 'en_curso', 'vencida'])
+    expect(acciones.map((x) => prioridad(x, HOY))).toEqual(['vencida', 'vence_pronto', 'sin_iniciar', 'futura', null, 'sin_iniciar', 'vencida'])
     expect(textoPlazo(acciones[0], 'vencida', HOY)).toBe('Venció el 31/10/2026 (hace 15 días)')
     expect(textoPlazo(acciones[1], 'vence_pronto', HOY)).toBe('Vence el 15/12/2026 (en 30 días)')
-    expect(textoPlazo(acciones[2], 'en_curso', HOY)).toBe('Debería haber empezado el 01/09/2026; fin: 30/06/2027')
+    expect(textoPlazo(acciones[2], 'sin_iniciar', HOY)).toBe('Debería haber empezado el 01/09/2026; fin: 30/06/2027')
     expect(textoPlazo(acciones[3], 'futura', HOY)).toBe('Empieza el 01/02/2027; fin: 30/06/2027')
   })
 
@@ -55,7 +57,20 @@ describe('resumen mensual', () => {
     expect(r.texto).toContain('1 con el plazo vencido y 1 vence en los próximos 60 días')
     expect(r.texto).toContain('PLAZO VENCIDO (1)\n• AM-CEN-2026-01. Acción 1\n   Tareas: - Convocar · - Resolver\n   Estado: En proceso. Venció el 31/10/2026 (hace 15 días).\n   https://x/app/gestion/CEN/accion/id1')
     expect(r.texto).not.toContain('Responsable:') // una sola responsabilidad
-    expect(r.html).toContain('Vencen en los próximos 60 días (1)')
+    expect(r.html).toContain('Vencen pronto (1)')
     expect(r.html).not.toContain('<script')
+  })
+
+  it('mismas situaciones y grupos que la aplicación', () => {
+    const fechas = [null, '2026-01-01', '2026-11-14', '2026-11-15', '2026-11-16', '2026-12-15', '2027-01-14', '2027-01-15', '2027-06-30']
+    for (const estado of ['pendiente', 'en_proceso', 'completada'])
+      for (const fecha_inicio of fechas)
+        for (const fecha_fin of fechas) {
+          if (fecha_inicio && fecha_fin && fecha_fin < fecha_inicio) continue
+          const x = a('CEN', null, { estado, fecha_inicio, fecha_fin })
+          const app = situacion({ estado: estado as EstadoAccion, fecha_inicio, fecha_fin }, HOY)
+          expect(prioridad(x, HOY) ?? 'finalizada', `${estado} ${fecha_inicio} ${fecha_fin}`).toBe(app)
+        }
+    expect(NIVELES.map((n) => [n.p, n.titulo])).toEqual(GRUPOS_SITUACION.map((g) => [g.situacion, g.titulo]))
   })
 })

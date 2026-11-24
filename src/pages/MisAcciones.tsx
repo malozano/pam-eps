@@ -7,21 +7,20 @@ import { ListaAcciones } from '../components/ListaAcciones'
 import { ProgresoRevision } from '../components/Revision'
 import { SugerenciaNotificaciones } from '../components/SugerenciaNotificaciones'
 import { anyoPorDefecto, etiquetaCurso } from '../lib/cursos'
-import { porPrioridad, PRIORIDADES } from '../lib/prioridad'
 import { usePorRevisar } from '../lib/revision'
-import { estaAbierta } from '../lib/seguimiento'
+import { estaAbierta, GRUPOS_SITUACION, porSituacion } from '../lib/seguimiento'
 import type { Accion } from '../lib/tipos'
 import { useAccionesTitulacion } from '../lib/useCatalogos'
 
 /**
  * Inicio de una cuenta de coordinación transversal: las acciones del plan del centro de sus
- * responsabilidades, por prioridad, y el histórico de las ya completadas o canceladas.
+ * responsabilidades, agrupadas por situación (las mismas que en el resto de la aplicación), y el histórico de las ya completadas o canceladas.
  */
 export function MisAcciones() {
   const { t } = useTranslation()
   const { perfil, responsabilidades } = useAuth()
   const { data: acciones = [], isLoading } = useAccionesTitulacion('CEN')
-  const grupos = useMemo(() => porPrioridad(acciones), [acciones])
+  const grupos = useMemo(() => porSituacion(acciones), [acciones])
   const historico = useMemo(() => {
     const m = new Map<number, Accion[]>()
     for (const a of acciones.filter((x) => !estaAbierta(x.estado))) m.set(a.anyo, [...(m.get(a.anyo) ?? []), a])
@@ -65,14 +64,14 @@ export function MisAcciones() {
               ? 'No tienes acciones abiertas.'
               : `Tienes ${abiertas === 1 ? '1 acción abierta' : `${abiertas} acciones abiertas`}. Entra en cada una para registrar su seguimiento (lo realizado, evidencias, cambios de estado o de fechas).`}
           </Text>
-          {PRIORIDADES.filter(({ prioridad }) => grupos[prioridad].length > 0).map(({ prioridad, titulo, ayuda, color }) => (
-            <Paper key={prioridad} withBorder p="md">
+          {GRUPOS_SITUACION.filter(({ situacion }) => grupos[situacion].length > 0).map(({ situacion, titulo, ayuda, color }) => (
+            <Paper key={situacion} withBorder p="md">
               <Group gap="xs" mb={2}>
                 <Title order={4}>{titulo}</Title>
-                <Badge color={color}>{grupos[prioridad].length}</Badge>
+                <Badge color={color}>{grupos[situacion].length}</Badge>
               </Group>
               <Text size="xs" c="dimmed" mb="xs">{ayuda}</Text>
-              <ListaAcciones acciones={grupos[prioridad]} verResponsable={varias} minWidth={640} />
+              <ListaAcciones acciones={grupos[situacion]} verResponsable={varias} minWidth={640} />
             </Paper>
           ))}
 

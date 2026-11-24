@@ -84,3 +84,32 @@ export function compararPorUrgencia(
     x.codigo.localeCompare(y.codigo)
   )
 }
+
+/**
+ * Grupos de acciones abiertas por situación, en orden de urgencia. Los usan «Mis acciones» y el
+ * resumen mensual (que incluyen también las que empiezan más adelante); «Requieren atención»
+ * muestra todas salvo esas. Mismos nombres y colores que las etiquetas de situación.
+ */
+export const GRUPOS_SITUACION: { situacion: Exclude<Situacion, 'finalizada'>; titulo: string; ayuda: string; color: string }[] = [
+  { situacion: 'vencida', titulo: 'Plazo vencido', ayuda: 'La fecha de fin ya ha pasado.', color: 'red' },
+  { situacion: 'vence_pronto', titulo: 'Vencen pronto', ayuda: `La fecha de fin llega en los próximos ${DIAS_VENCE_PRONTO} días.`, color: 'orange' },
+  { situacion: 'sin_iniciar', titulo: 'Deberían haber empezado', ayuda: 'Siguen pendientes y su fecha de inicio ya ha llegado.', color: 'grape' },
+  { situacion: 'proxima', titulo: 'Empiezan pronto', ayuda: 'Pendientes que empiezan en los próximos 30 días.', color: 'yellow' },
+  { situacion: 'en_plazo', titulo: 'En plazo', ayuda: 'En marcha o sin fecha de inicio, sin nada urgente.', color: 'green' },
+  { situacion: 'futura', titulo: 'Empiezan más adelante', ayuda: 'Pendientes que empiezan dentro de más de 30 días.', color: 'gray' },
+]
+
+/** Agrupa las acciones abiertas por situación (orden dentro de cada grupo: el de compararPorUrgencia). */
+export function porSituacion<T extends Pick<Accion, 'estado' | 'fecha_inicio' | 'fecha_fin' | 'codigo'>>(
+  acciones: T[],
+  hoy: string = hoyISO(),
+): Record<Exclude<Situacion, 'finalizada'>, T[]> {
+  const g: Record<Exclude<Situacion, 'finalizada'>, T[]> = {
+    vencida: [], vence_pronto: [], sin_iniciar: [], proxima: [], en_plazo: [], futura: [],
+  }
+  for (const a of [...acciones].sort((x, y) => compararPorUrgencia(x, y, hoy))) {
+    const s = situacion(a, hoy)
+    if (s !== 'finalizada') g[s].push(a)
+  }
+  return g
+}

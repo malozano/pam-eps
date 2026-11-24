@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { diasHasta, enPlanDelCurso, situacion } from './seguimiento'
+import { diasHasta, enPlanDelCurso, GRUPOS_SITUACION, porSituacion, situacion } from './seguimiento'
+import type { Accion } from './tipos'
 
 describe('enPlanDelCurso', () => {
   it('incluye las del curso en cualquier estado', () => {
@@ -45,5 +46,24 @@ describe('diasHasta', () => {
     expect(diasHasta('2026-12-01', '2026-11-20')).toBe(11)
     expect(diasHasta('2026-11-18', '2026-11-20')).toBe(-2)
     expect(diasHasta('2027-03-01', '2027-02-27')).toBe(2)
+  })
+})
+
+describe('grupos por situación', () => {
+  it('cada acción abierta en un grupo, en orden de urgencia', () => {
+    const hoy = '2026-11-20'
+    const b = (codigo: string, estado: Accion['estado'], fecha_inicio: string | null, fecha_fin: string | null) =>
+      ({ codigo, estado, fecha_inicio, fecha_fin }) as Accion
+    const g = porSituacion([
+      b('F', 'pendiente', '2027-03-01', '2027-09-30'),
+      b('P', 'en_proceso', '2027-03-01', '2027-09-30'), // en proceso aunque no haya llegado su inicio
+      b('V2', 'pendiente', null, '2026-10-01'),
+      b('V1', 'en_proceso', null, '2026-09-01'),
+      b('X', 'completada', null, null),
+    ], hoy)
+    expect(Object.fromEntries(Object.entries(g).map(([k, v]) => [k, v.map((x) => x.codigo)]))).toEqual({
+      vencida: ['V1', 'V2'], vence_pronto: [], sin_iniciar: [], proxima: [], en_plazo: ['P'], futura: ['F'],
+    })
+    expect(GRUPOS_SITUACION.map((x) => x.situacion)).toEqual(['vencida', 'vence_pronto', 'sin_iniciar', 'proxima', 'en_plazo', 'futura'])
   })
 })

@@ -184,8 +184,8 @@ institucional del cargo** (así la cuenta no cambia aunque cambie la persona). S
   responsable no está en la lista.
 
 Una cuenta transversal solo ve **«Mis acciones»**: sus acciones abiertas del plan del centro por
-prioridad (plazo vencido, vencen en los próximos 60 días, en curso o que ya deberían haber empezado,
-empiezan más adelante) y el histórico de las completadas o canceladas por curso. Puede **registrar
+situación (plazo vencido, vencen pronto, deberían haber empezado, empiezan pronto, en plazo y empiezan
+más adelante) y el histórico de las completadas o canceladas por curso. Puede **registrar
 el seguimiento** (también cancelar) pero no crear, editar ni borrar acciones; los permisos se
 comprueban en la base de datos. Cada seguimiento que registra envía **al momento un aviso a la
 administración** (push y correo, según sus preferencias) y queda **«pendiente de revisar»** en el
@@ -226,6 +226,21 @@ del curso vigente; de junio a octubre, el CEN19 de segundo semestre del curso te
 Muestran solo acciones marcadas como «acción de mejora»: las del curso indicado más las de
 cursos anteriores que siguen pendientes o en proceso. No requieren iniciar sesión.
 
+## Situación de las acciones (criterio común)
+
+Toda la aplicación (etiquetas, «Requieren atención», «Mis acciones», listados de Consultas y resumen
+mensual) usa las mismas situaciones para las acciones abiertas, en este orden de urgencia
+(`situacion()` y `GRUPOS_SITUACION` en `src/lib/seguimiento.ts`):
+
+| Situación | Regla |
+|---|---|
+| Vencida | La fecha de fin ya ha pasado |
+| Vence pronto | La fecha de fin llega en los próximos 60 días |
+| Debería haber empezado | Pendiente y su fecha de inicio ya ha llegado |
+| Empieza pronto | Pendiente y empieza en los próximos 30 días |
+| En plazo | El resto: en marcha o sin fecha de inicio (incluye las en proceso aunque su inicio sea futuro) |
+| Empieza más adelante | Pendiente que empieza dentro de más de 30 días (no sale en «Requieren atención») |
+
 ## Aplicación instalable (móvil y escritorio)
 
 La web es una PWA: se puede instalar desde el navegador y se abre a pantalla completa con su
@@ -246,8 +261,9 @@ del centro, la cuenta transversal responsable de cada acción también recibe su
 (se puede desactivar en «Avisos»).
 
 **Resumen mensual por correo**: el día configurado (15 por defecto; si falla, se reintenta los dos
-días siguientes) cada persona con acciones abiertas recibe un correo con ellas por prioridad: plazo
-vencido, vencen en los próximos 60 días, en curso o que ya deberían haber empezado, y empiezan más
+días siguientes) cada persona con acciones abiertas recibe un correo con ellas agrupadas por las mismas
+situaciones que en la aplicación: plazo vencido, vencen pronto, deberían haber empezado, empiezan
+pronto, en plazo y empiezan más
 adelante, con sus tareas y un enlace a cada una. Las cuentas transversales reciben sus acciones del
 plan del centro; la coordinación de cada titulación, su plan; la administración, todo el plan del
 centro separando las acciones **sin cuenta responsable** (las que gestiona ella) de las que tienen

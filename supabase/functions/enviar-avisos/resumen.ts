@@ -1,8 +1,9 @@
-// Resumen mensual de acciones por correo: selección de acciones según el destinatario, niveles de
-// prioridad y redacción (texto y HTML). Sin dependencias para poder probarlo también con vitest.
-// Los niveles son los mismos que los de «Mis acciones» (src/lib/prioridad.ts).
+// Resumen mensual de acciones por correo: selección de acciones según el destinatario, grupos por
+// situación y redacción (texto y HTML). Sin dependencias para poder probarlo también con vitest.
+// Las situaciones y sus reglas son las mismas que en la aplicación (situacion() y GRUPOS_SITUACION
+// en src/lib/seguimiento.ts); src/lib/resumen.test.ts comprueba que coinciden.
 
-export type Prioridad = 'vencida' | 'vence_pronto' | 'en_curso' | 'futura'
+export type Prioridad = 'vencida' | 'vence_pronto' | 'sin_iniciar' | 'proxima' | 'en_plazo' | 'futura'
 
 export interface AccionR {
   id: string
@@ -23,38 +24,46 @@ export interface Bloque {
   verResponsable: boolean
 }
 
-const DIAS_PRONTO = 60
+const DIAS_PRONTO = 60 //  «Vence pronto»: fin en los próximos 60 días
+const DIAS_AVISO = 30 //   «Empieza pronto»: inicio en los próximos 30 días
 const ABIERTOS = ['pendiente', 'en_proceso']
 const ESTADO: Record<string, string> = { pendiente: 'Pendiente', en_proceso: 'En proceso' }
 
 const dias = (desde: string, hasta: string) => Math.round((Date.parse(hasta) - Date.parse(desde)) / 86400000)
 const fecha = (iso: string | null) => (iso ? iso.split('-').reverse().join('/') : '—')
 
+/** Situación de una acción abierta (null si está completada o cancelada). */
 export function prioridad(a: AccionR, hoy: string): Prioridad | null {
   if (!ABIERTOS.includes(a.estado)) return null
   if (a.fecha_fin && a.fecha_fin < hoy) return 'vencida'
   if (a.fecha_fin && dias(hoy, a.fecha_fin) <= DIAS_PRONTO) return 'vence_pronto'
-  if (!a.fecha_inicio || a.fecha_inicio <= hoy) return 'en_curso'
-  return 'futura'
+  if (a.estado === 'pendiente' && a.fecha_inicio) {
+    if (a.fecha_inicio <= hoy) return 'sin_iniciar'
+    if (dias(hoy, a.fecha_inicio) <= DIAS_AVISO) return 'proxima'
+    return 'futura'
+  }
+  return 'en_plazo'
 }
 
 export const NIVELES: { p: Prioridad; titulo: string; color: string }[] = [
   { p: 'vencida', titulo: 'Plazo vencido', color: '#c92a2a' },
-  { p: 'vence_pronto', titulo: `Vencen en los próximos ${DIAS_PRONTO} días`, color: '#d9480f' },
-  { p: 'en_curso', titulo: 'En curso o que ya deberían haber empezado', color: '#1864ab' },
+  { p: 'vence_pronto', titulo: 'Vencen pronto', color: '#d9480f' },
+  { p: 'sin_iniciar', titulo: 'Deberían haber empezado', color: '#9c36b5' },
+  { p: 'proxima', titulo: 'Empiezan pronto', color: '#e67700' },
+  { p: 'en_plazo', titulo: 'En plazo', color: '#2b8a3e' },
   { p: 'futura', titulo: 'Empiezan más adelante', color: '#495057' },
 ]
 
+/** Agrupa por situación; dentro de cada grupo, por fecha de fin y código (como en la aplicación). */
 export function porPrioridad(acciones: AccionR[], hoy: string): Record<Prioridad, AccionR[]> {
-  const g: Record<Prioridad, AccionR[]> = { vencida: [], vence_pronto: [], en_curso: [], futura: [] }
+  const g: Record<Prioridad, AccionR[]> = { vencida: [], vence_pronto: [], sin_iniciar: [], proxima: [], en_plazo: [], futura: [] }
   for (const a of acciones) {
     const p = prioridad(a, hoy)
     if (p) g[p].push(a)
   }
   const k = (s: string | null) => s ?? '9999'
-  for (const p of ['vencida', 'vence_pronto', 'en_curso'] as const)
-    g[p].sort((x, y) => k(x.fecha_fin).localeCompare(k(y.fecha_fin)) || x.codigo.localeCompare(y.codigo))
-  g.futura.sort((x, y) => k(x.fecha_inicio).localeCompare(k(y.fecha_inicio)) || x.codigo.localeCompare(y.codigo))
+  for (const lista of Object.values(g))
+    lista.sort((x, y) => k(x.fecha_fin).localeCompare(k(y.fecha_fin)) || x.codigo.localeCompare(y.codigo))
   return g
 }
 
@@ -126,14 +135,16 @@ const unaLinea = (s: string, n: number) => {
 const plural = (n: number, uno: string, varios: string) => (n === 1 ? `1 ${uno}` : `${n} ${varios}`)
 
 export function textoPlazo(a: AccionR, p: Prioridad, hoy: string): string {
+  const fin = a.fecha_fin ? `; fin: ${fecha(a.fecha_fin)}` : ''
   if (p === 'vencida') return `Venció el ${fecha(a.fecha_fin)} (hace ${plural(dias(a.fecha_fin!, hoy), 'día', 'días')})`
   if (p === 'vence_pronto') {
     const n = dias(hoy, a.fecha_fin!)
     return n === 0 ? `Vence hoy (${fecha(a.fecha_fin)})` : `Vence el ${fecha(a.fecha_fin)} (en ${plural(n, 'día', 'días')})`
   }
-  if (p === 'futura') return `Empieza el ${fecha(a.fecha_inicio)}${a.fecha_fin ? `; fin: ${fecha(a.fecha_fin)}` : ''}`
-  if (a.estado === 'pendiente' && a.fecha_inicio) return `Debería haber empezado el ${fecha(a.fecha_inicio)}; fin: ${fecha(a.fecha_fin)}`
-  return `Plazo: ${fecha(a.fecha_inicio)} – ${fecha(a.fecha_fin)}`
+  if (p === 'sin_iniciar') return `Debería haber empezado el ${fecha(a.fecha_inicio)}${fin}`
+  if (p === 'proxima') return `Empieza el ${fecha(a.fecha_inicio)} (en ${plural(dias(hoy, a.fecha_inicio!), 'día', 'días')})${fin}`
+  if (p === 'futura') return `Empieza el ${fecha(a.fecha_inicio)}${fin}`
+  return a.fecha_inicio ? `Plazo: ${fecha(a.fecha_inicio)} – ${fecha(a.fecha_fin)}` : `Fin: ${fecha(a.fecha_fin)}`
 }
 
 export interface Resumen {
