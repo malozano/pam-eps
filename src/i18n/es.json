@@ -13,7 +13,8 @@
     "instalar": "Instalar la aplicación",
     "avisos": "Avisos",
     "consultas": "Consultas",
-    "misAcciones": "Mis acciones"
+    "misAcciones": "Mis acciones",
+    "ajustes": "Ajustes"
   },
   "login": {
     "titulo": "Acceso coordinación",
@@ -82,6 +83,8 @@
     "todosLosPlanes": "Todos los planes",
     "nota": "Incluye las acciones de mejora propuestas para el curso y las de cursos anteriores que siguen pendientes o en proceso.",
     "contenidoCastellano": "El contenido de las acciones se muestra en castellano.",
-    "volverApp": "Volver a la aplicación"
+    "volverApp": "Volver a la aplicación",
+    "noHayPublicados": "No hay planes publicados.",
+    "noPublicado": "Este plan no está publicado."
   }
 }

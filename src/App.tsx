@@ -53,6 +53,15 @@ export default function App() {
           }
         />
         <Route
+          path="admin/ajustes"
+          element={
+            <RequireAuth admin>
+              <Avisos />
+            </RequireAuth>
+          }
+        />
+        {/* dirección anterior de los ajustes */}
+        <Route
           path="admin/avisos"
           element={
             <RequireAuth admin>

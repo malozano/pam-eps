@@ -1,7 +1,7 @@
 import { AppShell, Burger, Group, Menu, NavLink, Select, Text, UnstyledButton } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import {
-  IconBell, IconChartBar, IconListSearch, IconChevronDown, IconDeviceMobile, IconExternalLink, IconHome, IconLogout, IconUser, IconUsers, IconWorld,
+  IconSettings, IconChartBar, IconListSearch, IconChevronDown, IconDeviceMobile, IconExternalLink, IconHome, IconLogout, IconUser, IconUsers, IconWorld,
 } from '@tabler/icons-react'
 import { useEffect, useLayoutEffect } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -102,7 +102,7 @@ export function Layout() {
         {!esTransversal && enlace('/indicadores', t('nav.indicadores'), <IconChartBar size={18} />)}
         {esAdmin && enlace('/admin/consultas', t('nav.consultas'), <IconListSearch size={18} />)}
         {esAdmin && enlace('/admin/usuarios', t('nav.usuarios'), <IconUsers size={18} />)}
-        {esAdmin && enlace('/admin/avisos', t('nav.avisos'), <IconBell size={18} />)}
+        {esAdmin && enlace('/admin/ajustes', t('nav.ajustes'), <IconSettings size={18} />)}
         <NavLink
           component="a"
           href={`${import.meta.env.BASE_URL}plan`}

@@ -16,6 +16,7 @@ import { cambiarIdioma, IDIOMAS } from '../i18n'
 import { anyoPorDefecto, etiquetaCurso } from '../lib/cursos'
 import { descargar, generarExcel, nombreFichero } from '../lib/exportacion'
 import { fechaCorta } from '../lib/formato'
+import { estaPublicado, usePublicacion } from '../lib/publicacion'
 import { supabase } from '../lib/supabase'
 import type { EstadoAccion, Titulacion } from '../lib/tipos'
 import { ultimaRutaApp } from '../lib/memoriaVista'
@@ -103,7 +104,9 @@ function CabeceraPublica({ children }: { children?: ReactNode }) {
 export function IndicePlanes() {
   const { t } = useTranslation()
   const { data: titulaciones = [], isLoading } = useTitulaciones()
-  const activas = titulaciones.filter((x) => x.activa)
+  const { data: publicacion, isLoading: cargandoPub } = usePublicacion()
+  // solo los planes que la administración ha decidido publicar
+  const activas = titulaciones.filter((x) => x.activa && estaPublicado(publicacion, x.tipo))
   const grupo = (titulo: string, lista: Titulacion[]) =>
     lista.length > 0 && (
       <Stack gap="xs">
@@ -126,8 +129,10 @@ export function IndicePlanes() {
       <Container size="lg" py="lg">
         <Stack>
           <Text c="dimmed">{t('publico.planesIntro')}</Text>
-          {isLoading ? (
+          {isLoading || cargandoPub ? (
             <Skeleton h={300} />
+          ) : activas.length === 0 ? (
+            <Alert color="gray">{t('publico.noHayPublicados')}</Alert>
           ) : (
             <>
               {grupo(t('publico.centro'), activas.filter((x) => x.tipo === 'centro'))}
@@ -199,10 +204,12 @@ export function PlanPublico() {
   const [exportando, setExportando] = useState(false)
   const { data: titulaciones = [], isLoading: cargandoTit } = useTitulaciones()
   const tit = titulaciones.find((x) => x.codigo === codigo.toUpperCase())
+  const { data: publicacion, isLoading: cargandoPub } = usePublicacion()
+  const publicado = !!tit && estaPublicado(publicacion, tit.tipo)
   const { data: responsables = [] } = useResponsables(tit ? (tit.tipo === 'centro' ? 'centro' : 'titulacion') : undefined)
   const { data: filas = [], isLoading, error } = useQuery({
     queryKey: ['plan_publico', tit?.codigo, anyo],
-    enabled: !!tit,
+    enabled: publicado,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('plan_publico', { p_titulacion: tit!.codigo, p_anyo: anyo })
       if (error) throw error
@@ -232,11 +239,15 @@ export function PlanPublico() {
     <>
       <CabeceraPublica />
       <Container size="lg" py="lg">
-        {cargandoTit ? (
+        {cargandoTit || cargandoPub ? (
           <Skeleton h={300} />
         ) : !tit || !tit.activa ? (
           <Alert color="red">
             {t('publico.noExiste')} <Anchor component={Link} to="/plan">{t('publico.todosLosPlanes')}</Anchor>
+          </Alert>
+        ) : !publicado ? (
+          <Alert color="gray">
+            {t('publico.noPublicado')} <Anchor component={Link} to="/plan">{t('publico.todosLosPlanes')}</Anchor>
           </Alert>
         ) : (
           <Stack>

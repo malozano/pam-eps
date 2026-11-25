@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { useEstadoEmail } from '../../components/Notificaciones'
 import { enviarMiResumen, estadoEmail } from '../../lib/push'
 import { direccionesAvisos } from '../../lib/avisos'
+import { usePublicacion } from '../../lib/publicacion'
 import { supabase } from '../../lib/supabase'
 
 interface Ajustes {
@@ -98,8 +99,10 @@ export function Avisos() {
 
   return (
     <Stack maw={720}>
+      <Title order={2}>Ajustes</Title>
+      <Publicacion />
       <div>
-        <Title order={2}>Avisos de plazos</Title>
+        <Title order={3} mt="sm">Avisos de plazos</Title>
         <Text size="sm" c="dimmed">
           Cada mañana se avisa a la coordinación de cada plan (y a la administración, del plan del centro) de las
           acciones que empiezan, de las que se acercan a su fecha de fin y de las que han vencido sin completarse. Cada
@@ -142,8 +145,8 @@ export function Avisos() {
             />
             <Title order={5} mt="sm">Resumen mensual por correo</Title>
             <Text size="sm" c="dimmed">
-              Un correo con las acciones abiertas por prioridad (vencidas, vencen en los próximos 60 días, en curso,
-              empiezan más adelante). Lo reciben las cuentas transversales (sus acciones), la coordinación de cada
+              Un correo con las acciones abiertas agrupadas por situación (vencidas, vencen pronto, deberían haber
+              empezado, empiezan pronto, en plazo y empiezan más adelante). Lo reciben las cuentas transversales (sus acciones), la coordinación de cada
               titulación (su plan) y la administración (todo el plan del centro, separando las acciones sin cuenta
               responsable). Cada persona puede desactivarlo en «Mi cuenta → Notificaciones».
             </Text>
@@ -284,5 +287,44 @@ function EstadoResumen({ activo, dia }: { activo: boolean; dia: number }) {
         Enviarme ahora mi resumen
       </Button>
     </Group>
+  )
+}
+
+/** Qué planes se muestran en la web pública («Planes publicados»). */
+function Publicacion() {
+  const qc = useQueryClient()
+  const { data } = usePublicacion()
+  async function cambiar(campo: 'centro' | 'titulaciones', valor: boolean) {
+    const { error } = await supabase.from('ajustes_publicacion').update({ [campo]: valor }).eq('id', true)
+    if (error) return notifications.show({ color: 'red', title: 'No se ha guardado', message: error.message })
+    await qc.invalidateQueries({ queryKey: ['ajustes_publicacion'] })
+    notifications.show({
+      color: 'green',
+      message: `${campo === 'centro' ? 'Plan del centro' : 'Planes de titulación'}: ${valor ? 'publicados' : 'no publicados'}`,
+    })
+  }
+  return (
+    <Paper withBorder p="md">
+      <Stack gap="sm">
+        <div>
+          <Title order={4}>Publicación de los planes</Title>
+          <Text size="sm" c="dimmed">
+            Qué planes se pueden consultar sin iniciar sesión en «Planes publicados» (solo las acciones de mejora). Un plan
+            no publicado tampoco se puede ver con su enlace directo. No afecta a la gestión ni a las exportaciones.
+          </Text>
+        </div>
+        {data ? (
+          <>
+            <Switch label="Publicar el plan del centro" checked={data.centro} onChange={(e) => cambiar('centro', e.currentTarget.checked)} />
+            <Switch label="Publicar los planes de titulación" checked={data.titulaciones} onChange={(e) => cambiar('titulaciones', e.currentTarget.checked)} />
+            {!data.centro && !data.titulaciones && (
+              <Text size="sm" c="orange.8">La página «Planes publicados» indicará que no hay planes publicados.</Text>
+            )}
+          </>
+        ) : (
+          <Skeleton h={60} />
+        )}
+      </Stack>
+    </Paper>
   )
 }

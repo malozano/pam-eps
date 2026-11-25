@@ -220,6 +220,11 @@ del curso vigente; de junio a octubre, el CEN19 de segundo semestre del curso te
 
 ## URL públicas
 
+La administración decide en «Ajustes → Publicación de los planes» si se publican el plan del centro
+y los planes de titulación (por defecto, ambos). Un plan no publicado no aparece en el índice ni se
+puede consultar con su enlace (lo comprueba la función `plan_publico`); sin ninguno publicado, el
+índice indica «No hay planes publicados».
+
 - Índice de planes: `https://<usuario>.github.io/pam-eps/plan`
 - Plan de una titulación para un curso: `…/plan/D110/2026` (curso 2026-27). Sin año, el curso actual.
 
@@ -256,9 +261,9 @@ instrucciones para cada plataforma (en Android/Chrome, instalación directa).
 Cada día (pg_cron, 06:00 UTC) se generan avisos para la coordinación de cada plan (y para la
 administración, del plan del centro): **inicio** de una acción pendiente, **fin próximo** (30 días
 antes por defecto) y **plazo vencido** (1 día después del fin sin completar). Cada aviso se envía
-una sola vez por acción y fecha; los días se configuran en «Avisos» (administración). En el plan
+una sola vez por acción y fecha; los días se configuran en «Ajustes» (administración). En el plan
 del centro, la cuenta transversal responsable de cada acción también recibe sus avisos de plazo
-(se puede desactivar en «Avisos»).
+(se puede desactivar en «Ajustes»).
 
 **Resumen mensual por correo**: el día configurado (15 por defecto; si falla, se reintenta los dos
 días siguientes) cada persona con acciones abiertas recibe un correo con ellas agrupadas por las mismas
