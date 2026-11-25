@@ -20,6 +20,7 @@ import { supabase } from '../lib/supabase'
 import type { Accion } from '../lib/tipos'
 import { useAccionesTitulacion } from '../lib/useCatalogos'
 import { useTitulaciones } from '../lib/useTitulaciones'
+import { useEstadoDesde } from '../lib/navegacion'
 
 /**
  * Preparación del informe de seguimiento (CEN19): acciones de mejora no cerradas agrupadas
@@ -27,6 +28,7 @@ import { useTitulaciones } from '../lib/useTitulaciones'
  * reportarlas, las completadas y canceladas se marcan como cerradas.
  */
 export function InformeSeguimiento() {
+  const estadoDesde = useEstadoDesde()
   const { codigo = '' } = useParams()
   const qc = useQueryClient()
   const { esAdmin, titulaciones: mias } = useAuth()
@@ -166,7 +168,7 @@ export function InformeSeguimiento() {
                               </Table.Td>
                             )}
                             <Table.Td style={{ verticalAlign: 'top' }}>
-                              <Anchor component={Link} to={`/gestion/${codigo}/accion/${a.id}`} size="sm" ff="monospace">
+                              <Anchor component={Link} to={`/gestion/${codigo}/accion/${a.id}`} state={estadoDesde} size="sm" ff="monospace">
                                 {a.codigo}
                               </Anchor>
                               <Text size="sm" lineClamp={3}>{a.nombre}</Text>

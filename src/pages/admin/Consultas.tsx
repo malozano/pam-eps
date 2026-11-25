@@ -8,7 +8,7 @@ import {
   IconSortDescending,
 } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
 import { EstadoBadge } from '../../components/EstadoBadge'
@@ -27,6 +27,7 @@ import { supabase } from '../../lib/supabase'
 import { ESTADOS, type Accion, type EstadoAccion } from '../../lib/tipos'
 import { useTitulaciones } from '../../lib/useTitulaciones'
 import { RevisionEstado } from './RevisionEstado'
+import { useEstadoDesde } from '../../lib/navegacion'
 
 /** Colores de los estados en los gráficos (paleta validada; mismo significado que las insignias). */
 const COLOR_ESTADO: Record<EstadoAccion, string> = {
@@ -138,12 +139,32 @@ const SITUACIONES: { value: Situacion; label: string }[] = [
   { value: 'finalizada', label: 'Completada o cancelada' },
 ]
 
+const CLAVE_CONSULTA = 'pam:consulta'
+function leerConsultaGuardada(): { f: FiltrosConsulta; orden: { col: Columna; asc: boolean }; agrupar: Agrupacion } | null {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(CLAVE_CONSULTA) ?? 'null')
+    return v && v.f ? { ...v, f: { ...FILTROS_VACIOS, ...v.f } } : null
+  } catch {
+    return null
+  }
+}
+
 function Consulta({ acciones }: { acciones: Accion[] }) {
+  const estadoDesde = useEstadoDesde()
   const { t } = useTranslation()
   const { data: tits = [] } = useTitulaciones()
-  const [f, setF] = useState<FiltrosConsulta>(FILTROS_VACIOS)
-  const [orden, setOrden] = useState<{ col: Columna; asc: boolean }>({ col: 'fecha_fin', asc: true })
-  const [agrupar, setAgrupar] = useState<Agrupacion>('ninguna')
+  // Filtros, orden y agrupación se recuerdan durante la sesión (para volver desde una ficha)
+  const guardada = useMemo(() => leerConsultaGuardada(), [])
+  const [f, setF] = useState<FiltrosConsulta>(guardada?.f ?? FILTROS_VACIOS)
+  const [orden, setOrden] = useState<{ col: Columna; asc: boolean }>(guardada?.orden ?? { col: 'fecha_fin', asc: true })
+  const [agrupar, setAgrupar] = useState<Agrupacion>(guardada?.agrupar ?? 'ninguna')
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(CLAVE_CONSULTA, JSON.stringify({ f, orden, agrupar }))
+    } catch {
+      /* sin almacenamiento: no se recuerda */
+    }
+  }, [f, orden, agrupar])
   const porRevisar = usePorRevisarTodas()
   const set = <K extends keyof FiltrosConsulta>(k: K, v: FiltrosConsulta[K]) => setF((x) => ({ ...x, [k]: v }))
   const hoy = hoyISO()
@@ -251,7 +272,7 @@ function Consulta({ acciones }: { acciones: Accion[] }) {
                 ) : null,
                 ...lista.map((a) => (
                   <Table.Tr key={a.id} style={porRevisar(a.id) ? { background: FONDO_POR_REVISAR } : undefined}>
-                    <Table.Td><Anchor component={Link} to={`/gestion/${a.titulacion}/accion/${a.id}`} ff="monospace" size="sm">{a.codigo}</Anchor></Table.Td>
+                    <Table.Td><Anchor component={Link} to={`/gestion/${a.titulacion}/accion/${a.id}`} state={estadoDesde} ff="monospace" size="sm">{a.codigo}</Anchor></Table.Td>
                     <Table.Td><Text size="sm" lineClamp={2}>{a.nombre}</Text></Table.Td>
                     <Table.Td>{a.responsable ?? '—'}</Table.Td>
                     <Table.Td style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_inicio)}</Table.Td>

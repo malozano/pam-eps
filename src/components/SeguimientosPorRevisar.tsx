@@ -9,6 +9,7 @@ import { fechaCorta } from '../lib/formato'
 import { supabase } from '../lib/supabase'
 import type { Accion, EntradaHistorial } from '../lib/tipos'
 import { TextoConEnlaces } from './TextoConEnlaces'
+import { useEstadoDesde } from '../lib/navegacion'
 
 type Fila = EntradaHistorial & {
   acciones: Pick<Accion, 'id' | 'codigo' | 'nombre' | 'titulacion' | 'responsable'>
@@ -42,6 +43,7 @@ export async function marcarRevisados(ids: number[], revisado = true) {
  * todavía no ha revisado. Si algo no es correcto, se corrige con un nuevo seguimiento o editando la acción.
  */
 export function SeguimientosPorRevisar() {
+  const estadoDesde = useEstadoDesde()
   const { t } = useTranslation()
   const qc = useQueryClient()
   const { data = [] } = useSeguimientosPorRevisar(true)
@@ -87,7 +89,7 @@ export function SeguimientosPorRevisar() {
             <Group justify="space-between" align="flex-start" wrap="nowrap">
               <div style={{ minWidth: 0 }}>
                 <Group gap="xs">
-                  <Anchor component={Link} to={`/gestion/${h.acciones.titulacion}/accion/${h.acciones.id}`} ff="monospace" size="sm">
+                  <Anchor component={Link} to={`/gestion/${h.acciones.titulacion}/accion/${h.acciones.id}`} state={estadoDesde} ff="monospace" size="sm">
                     {h.acciones.codigo}
                   </Anchor>
                   <Text size="sm" fw={500}>

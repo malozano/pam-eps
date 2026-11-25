@@ -13,6 +13,7 @@ import { tituloPropuesto, useEstadoRevision, useRevisiones, type AmbitoRevision,
 import { supabase } from '../../lib/supabase'
 import type { Accion } from '../../lib/tipos'
 import { useTitulaciones } from '../../lib/useTitulaciones'
+import { useEstadoDesde } from '../../lib/navegacion'
 
 const urlApp = () => `${window.location.origin}${import.meta.env.BASE_URL}`
 const fecha = (iso: string) => new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -123,6 +124,7 @@ function PorTitulacion({ filas, tits }: { filas: { titulacion: string; revisada:
 }
 
 function PorResponsable({ pendientes }: { pendientes: Accion[] }) {
+  const estadoDesde = useEstadoDesde()
   const grupos = pendientesPorResponsable(pendientes, false)
   if (!grupos.length) return <Alert color="green">Todas las acciones del plan del centro están revisadas.</Alert>
   return (
@@ -148,7 +150,7 @@ function PorResponsable({ pendientes }: { pendientes: Accion[] }) {
           </Group>
           <Group gap="xs" mt={4}>
             {g.acciones.map((a) => (
-              <Anchor key={a.id} component={Link} to={`/gestion/CEN/accion/${a.id}`} ff="monospace" size="sm">{a.codigo}</Anchor>
+              <Anchor key={a.id} component={Link} to={`/gestion/CEN/accion/${a.id}`} state={estadoDesde} ff="monospace" size="sm">{a.codigo}</Anchor>
             ))}
           </Group>
         </Paper>

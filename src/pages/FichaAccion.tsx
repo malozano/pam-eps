@@ -21,6 +21,7 @@ import { TextoConEnlaces } from '../components/TextoConEnlaces'
 import { etiquetaCurso } from '../lib/cursos'
 import { fechaCorta } from '../lib/formato'
 import { estaAbierta } from '../lib/seguimiento'
+import { useDesde } from '../lib/navegacion'
 import { supabase } from '../lib/supabase'
 import type { EntradaHistorial } from '../lib/tipos'
 import { useAccionesTitulacion, useHistorial } from '../lib/useCatalogos'
@@ -57,6 +58,7 @@ export function FichaAccion() {
   const { data: acciones = [], isLoading } = useAccionesTitulacion(codigo)
   const { data: historial = [], isLoading: cargandoHistorial } = useHistorial(id)
   const [seguimiento, setSeguimiento] = useState(false)
+  const desde = useDesde()
 
   // Las cuentas transversales solo consultan (y registran el seguimiento de) sus acciones del CEN
   const soloSeguimiento = esTransversal && codigo === 'CEN'
@@ -98,8 +100,9 @@ export function FichaAccion() {
 
   return (
     <Stack maw={960}>
-      <Anchor component={Link} to={soloSeguimiento ? '/' : `/gestion/${codigo}`} size="sm">
-        ← {soloSeguimiento ? 'Mis acciones' : tit ? `Plan ${tit.codigo}` : 'Volver al plan'}
+      {/* vuelve a la pantalla desde la que se abrió la acción; si no se sabe, al plan */}
+      <Anchor component={Link} to={desde?.ruta ?? (soloSeguimiento ? '/' : `/gestion/${codigo}`)} size="sm">
+        ← {desde?.etiqueta ?? (soloSeguimiento ? 'Mis acciones' : tit ? `Plan ${tit.codigo}` : 'Volver al plan')}
       </Anchor>
 
       <Stack gap={6}>
@@ -121,7 +124,7 @@ export function FichaAccion() {
           Registrar seguimiento
         </Button>
         {!soloSeguimiento && (
-          <Button variant="default" leftSection={<IconPencil size={16} />} component={Link} to="editar">
+          <Button variant="default" leftSection={<IconPencil size={16} />} component={Link} to="editar" state={desde ? { desde } : undefined}>
             Editar
           </Button>
         )}

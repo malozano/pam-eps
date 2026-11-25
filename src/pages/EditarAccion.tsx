@@ -16,6 +16,7 @@ import { IndicadoresInput } from '../components/IndicadoresInput'
 import { OrigenInput } from '../components/OrigenInput'
 import { anyoPorDefecto, anyosSeleccionables, etiquetaCurso } from '../lib/cursos'
 import { componerOrigen, origenPorDefecto } from '../lib/origen'
+import { useDesde } from '../lib/navegacion'
 import { supabase } from '../lib/supabase'
 import type { Accion } from '../lib/tipos'
 import { useAccionesTitulacion, useResponsables } from '../lib/useCatalogos'
@@ -43,6 +44,9 @@ export function EditarAccion() {
   const esNueva = !id
   const { esAdmin, titulaciones: mias } = useAuth()
   const navigate = useNavigate()
+  // pantalla desde la que se abrió la ficha (se conserva al volver a ella)
+  const desde = useDesde()
+  const estadoFicha = desde ? { desde } : undefined
   const qc = useQueryClient()
   const { data: titulaciones = [] } = useTitulaciones()
   const tit = titulaciones.find((t) => t.codigo === codigo)
@@ -162,7 +166,7 @@ export function EditarAccion() {
       title: esNueva ? 'Acción creada' : 'Cambios guardados',
       message: esNueva ? `Se le ha asignado el código ${res.data.codigo}` : res.data.codigo,
     })
-    navigate(`/gestion/${codigo}/accion/${res.data.id}`)
+    navigate(`/gestion/${codigo}/accion/${res.data.id}`, { state: estadoFicha })
   }
 
   function borrar() {
@@ -192,14 +196,14 @@ export function EditarAccion() {
         form.resetDirty()
         await qc.invalidateQueries({ queryKey: ['acciones'] })
         notifications.show({ color: 'green', message: `${accion.codigo} borrada` })
-        navigate(volver)
+        navigate(desde?.ruta ?? volver)
       },
     })
   }
 
   return (
     <Stack maw={900}>
-      <Anchor component={Link} to={cancelar} size="sm">
+      <Anchor component={Link} to={cancelar} state={esNueva ? undefined : estadoFicha} size="sm">
         ← {esNueva ? (tit ? `Plan ${tit.codigo}` : 'Volver al plan') : `Ficha de ${accion?.codigo ?? 'la acción'}`}
       </Anchor>
       <div>

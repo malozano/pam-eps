@@ -8,6 +8,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { confirmarEstado, usePorRevisar, useRevisiones, type Revision } from '../lib/revision'
 import { supabase } from '../lib/supabase'
 import type { Accion } from '../lib/tipos'
+import { useEstadoDesde } from '../lib/navegacion'
 
 const fecha = (iso: string) => new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
 
@@ -158,6 +159,7 @@ export function AvisoRevisionesAdmin() {
 
 /** En la página del informe de seguimiento: acciones del plan que faltan por revisar. */
 export function AvisoRevisionInforme({ titulacion, acciones }: { titulacion: string; acciones: Accion[] }) {
+  const estadoDesde = useEstadoDesde()
   const { revision, porRevisar } = usePorRevisar(titulacion, titulacion === 'CEN' ? 'centro' : 'titulaciones')
   if (!revision || !porRevisar.size) return null
   const lista = acciones.filter((a) => porRevisar.has(a.id))
@@ -169,7 +171,7 @@ export function AvisoRevisionInforme({ titulacion, acciones }: { titulacion: str
       </Text>
       <Group gap="xs" mt={6}>
         {lista.map((a) => (
-          <Anchor key={a.id} component={Link} to={`/gestion/${titulacion}/accion/${a.id}`} ff="monospace" size="sm">{a.codigo}</Anchor>
+          <Anchor key={a.id} component={Link} to={`/gestion/${titulacion}/accion/${a.id}`} state={estadoDesde} ff="monospace" size="sm">{a.codigo}</Anchor>
         ))}
       </Group>
     </Alert>

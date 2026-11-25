@@ -24,6 +24,7 @@ import {
 import { supabase } from '../lib/supabase'
 import { leerTasas, mismaTitulacion, type TasasTitulacion } from '../lib/tasas'
 import type { Accion, Titulacion } from '../lib/tipos'
+import { useEstadoDesde } from '../lib/navegacion'
 
 const PRIORIDAD: Motivo[] = ['baja', 'no_presentados', 'atipica', 'cambio']
 const fondo = (m: Motivo[]) => {
@@ -138,6 +139,7 @@ function Criterios({ editable }: { editable: boolean }) {
 
 /** Generación del informe de seguimiento semestral (CEN19) en Word. */
 export function InformeCen19Panel({ titulacion, acciones }: { titulacion: Titulacion; acciones: Accion[] }) {
+  const estadoDesde = useEstadoDesde()
   const { esAdmin } = useAuth()
   const { data: ajustes } = useAjustesInforme()
   const criterios = criteriosDesdeAjustes(ajustes)
@@ -289,7 +291,7 @@ export function InformeCen19Panel({ titulacion, acciones }: { titulacion: Titula
             <List size="sm">
               {vencidas.map((a) => (
                 <List.Item key={a.id}>
-                  <Anchor component={Link} to={`/gestion/${titulacion.codigo}/accion/${a.id}`} size="sm">{a.codigo}</Anchor>{' '}
+                  <Anchor component={Link} to={`/gestion/${titulacion.codigo}/accion/${a.id}`} state={estadoDesde} size="sm">{a.codigo}</Anchor>{' '}
                   {a.nombre} (fin: {fechaCorta(a.fecha_fin)})
                 </List.Item>
               ))}

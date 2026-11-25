@@ -9,6 +9,7 @@ import type { Accion } from '../lib/tipos'
 import { EstadoBadge } from './EstadoBadge'
 import { FONDO_POR_REVISAR, MarcaPorRevisar } from './Revision'
 import { SituacionBadge } from './SituacionBadge'
+import { useEstadoDesde } from '../lib/navegacion'
 
 /** Datos mínimos para mostrar una acción en un listado */
 export type AccionListado = Pick<Accion, 'id' | 'codigo' | 'titulacion' | 'nombre' | 'estado' | 'fecha_inicio' | 'fecha_fin'> &
@@ -45,6 +46,7 @@ export function ListaAcciones({
   const navigate = useNavigate()
   const movil = useMediaQuery('(max-width: 48em)')
   const porRevisar = usePorRevisarTodas()
+  const estado = useEstadoDesde()
   const url = (a: AccionListado) => `/gestion/${a.titulacion}/accion/${a.id}`
   const etiquetas = (a: AccionListado) => (
     <>
@@ -64,6 +66,7 @@ export function ListaAcciones({
             p="sm"
             component={Link}
             to={url(a)}
+            state={estado}
             opacity={a.cerrada ? 0.6 : 1}
             bg={porRevisar(a.id) ? FONDO_POR_REVISAR : undefined}
             style={{ color: 'inherit', textDecoration: 'none' }}
@@ -106,7 +109,7 @@ export function ListaAcciones({
               key={a.id}
               opacity={a.cerrada ? 0.6 : 1}
               style={{ cursor: 'pointer', ...(porRevisar(a.id) ? { background: FONDO_POR_REVISAR } : {}) }}
-              onClick={() => navigate(url(a))}
+              onClick={() => navigate(url(a), { state: estado })}
             >
               <Table.Td>
                 <Text size="sm" ff="monospace" style={{ whiteSpace: 'nowrap' }}>{a.codigo}</Text>
