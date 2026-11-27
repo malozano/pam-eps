@@ -102,9 +102,12 @@ export function Indicadores() {
                         <Text fw={500}>{i.nombre}</Text>
                         {!i.activo && <Badge size="xs" color="gray">Inactivo</Badge>}
                         {uso && (
-                          <Badge size="xs" variant="light" color={uso.get(i.codigo) ? 'blue' : 'gray'}>
-                            {uso.get(i.codigo) === 1 ? '1 acción' : `${uso.get(i.codigo) ?? 0} acciones`}
-                          </Badge>
+                          <Tooltip label={esAdmin ? 'Acciones de todos los planes que usan este indicador' : 'Acciones de tus planes que usan este indicador'}>
+                            <Badge size="xs" variant="light" color={uso.get(i.codigo) ? 'blue' : 'gray'}>
+                              {uso.get(i.codigo) === 1 ? '1 acción' : `${uso.get(i.codigo) ?? 0} acciones`}
+                              {!esAdmin && ' en tus planes'}
+                            </Badge>
+                          </Tooltip>
                         )}
                       </Group>
                       {i.definicion && <Text size="sm" c="dimmed">{i.definicion}</Text>}
