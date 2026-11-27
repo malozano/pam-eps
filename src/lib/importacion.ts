@@ -336,9 +336,23 @@ export function cruzarConExistentes(
   for (const e of existentes) subir(e.anyo, e.numero)
   for (const f of filas) if (f.datos?.numero) subir(f.datos.anyo, f.datos.numero)
   const nombresFichero = new Map<string, number>()
+  // año y número ya usados por otra fila del fichero (dos códigos distintos pueden tener el mismo
+  // año y número: un prefijo antiguo y el actual, o «-01» y «-001»)
+  const numerosFichero = new Map<string, FilaAnalizada>()
 
   return filas.map((f) => {
     if (!f.datos) return f
+    if (f.datos.numero !== null) {
+      const clave = `${f.datos.anyo}-${f.datos.numero}`
+      const otra = numerosFichero.get(clave)
+      if (otra)
+        return {
+          ...f,
+          datos: null,
+          errores: [...f.errores, `Mismo año y número que la fila ${otra.fila} (${otra.codigo}): solo puede haber una acción con cada número`],
+        }
+      numerosFichero.set(clave, f)
+    }
     if (f.datos.codigo === null) {
       const avisos = [...f.avisos]
       const igual = porNombre.get(normalizar(f.datos.nombre))

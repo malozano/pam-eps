@@ -237,3 +237,15 @@ describe('acciones sin código', () => {
     expect(ordenEnvio(c).map((f) => f.nombre)).toEqual(['Con código', 'Sin código A', 'Ya existe con este nombre', 'Sin código A'])
   })
 })
+
+describe('mismo año y número con códigos distintos', () => {
+  it('se marca como error en la vista previa', () => {
+    const a = analizarFilas(
+      [CABECERA, ['AM-MUDSDM-2023-01', 'Antigua'], ['AM-D110-2023-01', 'Nueva'], ['AM-D110-2023-001', 'Otra forma'], ['AM-D110-2023-02', 'Distinta']],
+      ctx,
+    )
+    const c = cruzarConExistentes(a.filas, [])
+    expect(c.map((f) => resultadoFila(f, false))).toEqual(['nueva', 'error', 'error', 'nueva'])
+    expect(c[1].errores.at(-1)).toMatch(/^Mismo año y número que la fila 2 \(AM-MUDSDM-2023-01\)/)
+  })
+})

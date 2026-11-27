@@ -126,7 +126,9 @@ export function Importar() {
       notifications.show({
         color: 'red',
         title: 'No se ha importado nada',
-        message: `La importación se ha cancelado completa. Detalle: ${error.message}`,
+        message: error.message.includes('acciones_titulacion_anyo_numero_key')
+          ? 'La importación se ha cancelado completa: dos acciones tendrían el mismo curso y número en este plan. Revisa los códigos del fichero (por ejemplo, un código antiguo y uno nuevo con el mismo año y número).'
+          : `La importación se ha cancelado completa. Detalle: ${error.message}`,
         autoClose: false,
       })
       return
