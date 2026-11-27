@@ -1,7 +1,7 @@
 import { AppShell, Burger, Group, Menu, NavLink, Select, Text, UnstyledButton } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import {
-  IconSettings, IconChartBar, IconListSearch, IconChevronDown, IconDeviceMobile, IconExternalLink, IconHome, IconLogout, IconUser, IconUsers, IconWorld,
+  IconSettings, IconChartBar, IconFolders, IconListSearch, IconChevronDown, IconDeviceMobile, IconExternalLink, IconHome, IconLogout, IconUser, IconUsers, IconWorld,
 } from '@tabler/icons-react'
 import { useEffect, useLayoutEffect } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -17,7 +17,7 @@ export function Layout() {
   const [abierto, { toggle, close }] = useDisclosure()
   const [instalarAbierto, { open: abrirInstalar, close: cerrarInstalar }] = useDisclosure()
   const { t, i18n } = useTranslation()
-  const { perfil, esAdmin, esTransversal, salir } = useAuth()
+  const { perfil, esAdmin, esTransversal, titulaciones, salir } = useAuth()
   const { pathname, search } = useLocation()
   const navigate = useNavigate()
   // Cada página nueva empieza arriba (el listado del plan restaura después su posición)
@@ -43,9 +43,13 @@ export function Layout() {
     guardarRutaApp(pathname + search)
   }, [pathname, search])
 
-  const enlace = (to: string, label: string, icon: React.ReactNode) => (
-    <NavLink component={Link} to={to} label={label} leftSection={icon} active={pathname === to} onClick={close} />
+  const enlace = (to: string, label: string, icon: React.ReactNode, activo = pathname === to) => (
+    <NavLink component={Link} to={to} label={label} leftSection={icon} active={activo} onClick={close} />
   )
+  // «Planes» queda resaltado dentro de un plan, de sus acciones y de sus informes. Con un solo
+  // plan (coordinación), el enlace lleva directamente a él.
+  const unSoloPlan = !esAdmin && titulaciones.length === 1 ? titulaciones[0] : null
+  const enPlanes = pathname === '/planes' || pathname.startsWith('/gestion/')
 
   return (
     <AppShell header={{ height: 56 }} navbar={{ width: 240, breakpoint: 'sm', collapsed: { mobile: !abierto } }} padding="md">
@@ -99,6 +103,10 @@ export function Layout() {
       </AppShell.Header>
       <AppShell.Navbar p="xs">
         {enlace('/', esTransversal ? t('nav.misAcciones') : t('nav.inicio'), <IconHome size={18} />)}
+        {!esTransversal &&
+          (unSoloPlan
+            ? enlace(`/gestion/${unSoloPlan}`, `Plan ${unSoloPlan}`, <IconFolders size={18} />, enPlanes)
+            : enlace('/planes', t('nav.planes'), <IconFolders size={18} />, enPlanes))}
         {!esTransversal && enlace('/indicadores', t('nav.indicadores'), <IconChartBar size={18} />)}
         {esAdmin && enlace('/admin/consultas', t('nav.consultas'), <IconListSearch size={18} />)}
         {esAdmin && enlace('/admin/usuarios', t('nav.usuarios'), <IconUsers size={18} />)}

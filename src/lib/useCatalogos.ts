@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from './supabase'
 import type { IndicadorCatalogo, Procedimiento } from './indicadores'
+import { ESTADOS_ABIERTOS } from './seguimiento'
 import type { Accion, EntradaHistorial } from './tipos'
 
 /**
@@ -88,6 +89,26 @@ export function useUsoIndicadores() {
       const { data, error } = await supabase.rpc('uso_indicadores')
       if (error) throw error
       return new Map((data as { codigo: string; acciones: number }[]).map((r) => [r.codigo, Number(r.acciones)]))
+    },
+  })
+}
+
+export type AccionResumen = Pick<
+  Accion,
+  'id' | 'codigo' | 'titulacion' | 'nombre' | 'estado' | 'fecha_inicio' | 'fecha_fin' | 'es_mejora'
+>
+
+/** Acciones abiertas de todos los planes que el usuario puede gestionar (RLS filtra el resto). */
+export function useAccionesAbiertas() {
+  return useQuery({
+    queryKey: ['acciones', 'abiertas'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('acciones')
+        .select('id, codigo, titulacion, nombre, estado, fecha_inicio, fecha_fin, es_mejora')
+        .in('estado', ESTADOS_ABIERTOS)
+      if (error) throw error
+      return data as AccionResumen[]
     },
   })
 }

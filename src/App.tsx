@@ -15,6 +15,7 @@ import { Inicio } from './pages/Inicio'
 import { Login } from './pages/Login'
 import { NoEncontrada } from './pages/NoEncontrada'
 import { Perfil } from './pages/Perfil'
+import { Planes } from './pages/Planes'
 import { Restablecer } from './pages/Restablecer'
 import { IndicePlanes, PlanPublico } from './pages/PlanPublico'
 
@@ -35,6 +36,7 @@ export default function App() {
         }
       >
         <Route index element={<Inicio />} />
+        <Route path="planes" element={<Planes />} />
         <Route path="gestion/:codigo" element={<GestionPlan />} />
         <Route path="gestion/:codigo/importar" element={<Importar />} />
         <Route path="gestion/:codigo/nueva" element={<EditarAccion />} />

@@ -145,8 +145,8 @@ export function GestionPlan() {
 
   return (
     <Stack>
-      <Anchor component={Link} to="/" size="sm">
-        ← Inicio
+      <Anchor component={Link} to="/planes" size="sm">
+        ← {t('nav.planes')}
       </Anchor>
       <Group justify="space-between" align="flex-end">
         <div>
