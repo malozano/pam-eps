@@ -1,10 +1,13 @@
-import { Badge, Group, Paper, Stack, Table, Text } from '@mantine/core'
+import { Badge, Group, Paper, Stack, Table, Text, Tooltip } from '@mantine/core'
+import { IconAlertTriangle } from '@tabler/icons-react'
 import { useMediaQuery } from '@mantine/hooks'
 import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { etiquetaCurso } from '../lib/cursos'
 import { fechaCorta } from '../lib/formato'
 import { usePorRevisar } from '../lib/revision'
+import { estaAbierta } from '../lib/seguimiento'
+import { useCatalogoIndicadores } from '../lib/useCatalogos'
 import type { Accion } from '../lib/tipos'
 import { EstadoBadge } from './EstadoBadge'
 import { FONDO_POR_REVISAR, MarcaPorRevisar } from './Revision'
@@ -13,7 +16,48 @@ import { useEstadoDesde } from '../lib/navegacion'
 
 /** Datos mínimos para mostrar una acción en un listado */
 export type AccionListado = Pick<Accion, 'id' | 'codigo' | 'titulacion' | 'nombre' | 'estado' | 'fecha_inicio' | 'fecha_fin'> &
-  Partial<Pick<Accion, 'anyo' | 'responsable' | 'es_mejora' | 'cerrada'>>
+  Partial<Pick<Accion, 'anyo' | 'responsable' | 'es_mejora' | 'cerrada' | 'tareas' | 'indicadores'>>
+
+/** Códigos de los indicadores (nombre del catálogo al pasar el ratón). */
+function CodigosIndicadores({ indicadores }: { indicadores: string[] }) {
+  const { data: cat } = useCatalogoIndicadores()
+  if (!indicadores.length) return <Text size="sm" c="dimmed">—</Text>
+  return (
+    <Group gap={4}>
+      {indicadores.map((x) => {
+        const i = cat?.porCodigo.get(x)
+        // los que no son del catálogo («Si / No», texto libre) se abrevian
+        const corto = i || x.length <= 12 ? x : `${x.slice(0, 11)}…`
+        return (
+          <Tooltip key={x} label={i ? `${i.codigo} · ${i.nombre}` : x} multiline maw={320} withArrow>
+            <Text size="xs" ff={i ? 'monospace' : undefined} fw={i ? 600 : undefined} style={{ whiteSpace: 'nowrap' }}>{corto}</Text>
+          </Tooltip>
+        )
+      })}
+    </Group>
+  )
+}
+
+/** Datos que faltan en una acción abierta (tareas, indicadores, fecha de fin). */
+function datosQueFaltan(a: AccionListado): string[] {
+  if (!estaAbierta(a.estado)) return []
+  const f: string[] = []
+  if (a.tareas !== undefined && !a.tareas?.trim()) f.push('Sin tareas')
+  if (a.indicadores !== undefined && !a.indicadores.length) f.push('Sin indicadores')
+  if (!a.fecha_fin) f.push('Sin fecha de fin')
+  return f
+}
+
+function AvisoDatos({ a }: { a: AccionListado }) {
+  const faltan = datosQueFaltan(a)
+  if (!faltan.length) return null
+  return (
+    <Group gap={4} wrap="nowrap" mt={2} c="orange.8">
+      <IconAlertTriangle size={13} aria-hidden style={{ flexShrink: 0 }} />
+      <Text size="xs" c="orange.8">{faltan.join(' · ')}</Text>
+    </Group>
+  )
+}
 
 /** Ids de las acciones pendientes de las revisiones del estado en curso (centro y titulaciones). */
 export function usePorRevisarTodas() {
@@ -33,6 +77,8 @@ export function ListaAcciones({
   cursoReferencia,
   extra,
   minWidth = 760,
+  verIndicadores = false,
+  avisosDatos = false,
 }: {
   acciones: AccionListado[]
   /** Columna «Responsable» */
@@ -42,6 +88,10 @@ export function ListaAcciones({
   /** Contenido de una última columna (p. ej., botón de editar) */
   extra?: (a: AccionListado) => ReactNode
   minWidth?: number
+  /** Columna con los códigos de los indicadores */
+  verIndicadores?: boolean
+  /** Avisa de lo que falta en las acciones abiertas (tareas, indicadores, fecha de fin) */
+  avisosDatos?: boolean
 }) {
   const navigate = useNavigate()
   const movil = useMediaQuery('(max-width: 48em)')
@@ -79,6 +129,10 @@ export function ListaAcciones({
               </div>
             </Group>
             <Text size="sm" fw={500} lineClamp={3}>{a.nombre}</Text>
+            {avisosDatos && <AvisoDatos a={a} />}
+            {verIndicadores && !!a.indicadores?.length && (
+              <Group gap={4} mt={4}><Text size="xs" c="dimmed">Indicadores:</Text><CodigosIndicadores indicadores={a.indicadores} /></Group>
+            )}
             <Text size="xs" c="dimmed" mt={4}>
               {fechaCorta(a.fecha_inicio)} – {fechaCorta(a.fecha_fin)}
               {verResponsable && ` · ${a.responsable ?? 'Sin responsable'}`}
@@ -97,6 +151,7 @@ export function ListaAcciones({
             <Table.Th>Código</Table.Th>
             <Table.Th>Acción</Table.Th>
             {verResponsable && <Table.Th>Responsable</Table.Th>}
+            {verIndicadores && <Table.Th>Indicadores</Table.Th>}
             <Table.Th>Inicio</Table.Th>
             <Table.Th>Fin</Table.Th>
             <Table.Th>Estado</Table.Th>
@@ -120,8 +175,10 @@ export function ListaAcciones({
               <Table.Td>
                 <Text size="sm" lineClamp={2}>{a.nombre}</Text>
                 <Group gap={4} mt={2}>{etiquetas(a)}</Group>
+                {avisosDatos && <AvisoDatos a={a} />}
               </Table.Td>
               {verResponsable && <Table.Td><Text size="sm">{a.responsable ?? '—'}</Text></Table.Td>}
+              {verIndicadores && <Table.Td maw={160}><CodigosIndicadores indicadores={a.indicadores ?? []} /></Table.Td>}
               <Table.Td style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_inicio)}</Table.Td>
               <Table.Td style={{ whiteSpace: 'nowrap' }}>{fechaCorta(a.fecha_fin)}</Table.Td>
               <Table.Td miw={130}>

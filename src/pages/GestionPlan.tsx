@@ -257,8 +257,10 @@ export function GestionPlan() {
         <ListaAcciones
           acciones={filtradas}
           verResponsable
+          verIndicadores
+          avisosDatos
           cursoReferencia={curso !== 'todos' ? Number(curso) : undefined}
-          minWidth={860}
+          minWidth={980}
           extra={(a) => (
             <Tooltip label="Editar">
               <ActionIcon variant="subtle" component={Link} to={`/gestion/${codigo}/accion/${a.id}/editar`} aria-label={`Editar ${a.codigo}`}>
